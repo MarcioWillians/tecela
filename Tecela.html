@@ -272,6 +272,11 @@ mark.pt-susp{background:#ffe866;color:#3a3000;border-radius:3px;padding:0 .15rem
 .pt-lista{max-height:50vh;overflow:auto;border:1px solid var(--linha);border-radius:8px;padding:.4rem .7rem}
 .pt-lista h4{margin:.6rem 0 .2rem}
 .pt-aviso li{margin:.35rem 0}
+/* avisos de contato e da BNCC */
+.alerta.aviso-bncc{background:var(--azulC)}
+.cartao.contato{border-left:4px solid var(--azul, #2F6AA8)}
+.entrada .versao a{color:inherit}
+.manual a{overflow-wrap:anywhere}
 
 </style>
 <style id="pg"></style>
@@ -331,7 +336,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
    Padrões de criptografia e de arquivos adaptados do PazNoBolso 0.9.
    ========================================================================== */
 'use strict';
-const VERSAO = '1.7';
+const VERSAO = '1.7.1';
 /* anos visíveis nas listas: o 9º ano fica oculto por padrão (na tradição Waldorf ele já é o início do ensino médio);
    uma turma de 9º ano que já exista continua aparecendo */
 const seriesVisiveis = extra => { const r = [1, 2, 3, 4, 5, 6, 7, 8]; if (CFG.prefs.mostrar9 || (typeof D !== 'undefined' && D.turmas && D.turmas.some(t => t.serie === 9)) || extra === 9) r.push(9); return r; };
@@ -340,6 +345,15 @@ const AUTORIA = 'Tecelã — criada por Márcio Willians Barreto de Andrade. Sof
 const SLOGAN = 'Fio a fio, tecendo as linhas da vida escolar';
 const AUTOR = 'Márcio Willians Barreto de Andrade';
 const CONTATO = 'marciowillians@gmail.com';
+/* onde baixar a versão mais recente (sempre a última publicada) */
+const LINK_VERSOES = 'https://github.com/MarcioWillians/tecela/releases/latest';
+const NAO_ENVIE = 'Não envie dados de crianças, seus ou da entidade, nem prints com nomes.';
+const lnkExt = (url, txt) => '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + (txt || url) + '</a>';
+/* aviso da BNCC (aba BNCC do Currículo e verbete da Biblioteca) */
+const AVISO_BNCC_TXT = 'A Tecelã traz a BNCC homologada (2017/2018) e o complemento de Computação (2022), sem alterações. Se o MEC publicar mudanças e a Tecelã ainda não estiver atualizada, avise por e-mail: ' + CONTATO + '. ' + NAO_ENVIE;
+const avisoBnccHtml = () => '<div class="alerta aviso-bncc"><b>Sobre a BNCC nesta versão.</b> A Tecelã traz a BNCC homologada (2017/2018) e o complemento de Computação (2022), sem alterações. Se o MEC publicar mudanças e a Tecelã ainda não estiver atualizada, avise por e-mail: <a href="mailto:' + CONTATO + '?subject=Tecel%C3%A3%20-%20BNCC">' + CONTATO + '</a>. ' + NAO_ENVIE + '</div>';
+/* sugestões e novas versões (Ajuda → Sobre, e o link da tela inicial) */
+const contatoHtml = () => '<div class="cartao contato" id="m-contato-app"><h3>Sugestões e novas versões</h3><p>Tem uma sugestão, encontrou um problema ou precisa de algo novo? Escreva para <a href="mailto:' + CONTATO + '?subject=Tecel%C3%A3%20-%20sugest%C3%A3o">' + CONTATO + '</a>. ' + NAO_ENVIE + '</p><p>Para ver se há versão mais recente: ' + lnkExt(LINK_VERSOES, 'github.com/MarcioWillians/tecela') + '. Você está usando a versão ' + VERSAO + '.</p><p><b>Para atualizar:</b> salve o seu arquivo (💾 Salvar), baixe o novo <i>Tecela.html</i> e substitua o antigo na mesma pasta, com o mesmo nome.</p></div>';
 const STORES = ['config', 'timbrado', 'turmas', 'alunos', 'matriculas', 'anotacoes', 'atas', 'marcacoes', 'modelosBoletim', 'boletins', 'perfisAluno', 'perfisTurma', 'biblioteca', 'cadastros', 'eventos', 'vivencias', 'tarefas', 'curriculo', 'observacoes', 'conselhos', 'documentos', 'reforcos', 'programa', 'repertorio', 'contatos', 'comunicados'];
 const DADOS = STORES.filter(s => s !== 'config');
 
@@ -1392,7 +1406,7 @@ const TEXTO_SALVAR = '<p><b>O que você digita é gravado sozinho, neste aparelh
   '<p><b>O arquivo .tecela é a cópia que vale.</b> Use 💾 Salvar (ou Ctrl+S) ao terminar o trabalho: o arquivo pode ficar no pendrive ou na nuvem, ser aberto em outro aparelho e é o que permite recuperar tudo. Com a senha ligada, ele vai criptografado.</p>';
 A.sobreSalvar = () => informar('Como a Tecelã salva o seu trabalho', TEXTO_SALVAR);
 const htmlMovel = () => MOVEL.map(k => { const [, r, ic] = TELAS.find(x => x[0] === k); return '<button data-a="ir" data-t="' + k + '" class="' + (UI.tela === k ? 'on' : '') + '"><span class="ic">' + ic + '</span><span>' + r.split(' ')[0] + '</span></button>'; }).join('') + '<button data-a="mais" class="' + (MOVEL.includes(UI.tela) ? '' : 'on') + '"><span class="ic">☰</span><span>Mais</span></button>';
-const htmlRodape = () => 'Tecelã ' + VERSAO + '<br>' + (SE.memoria ? 'Modo computador de terceiros<br>' : '') + (SE.demo ? '' : '<a href="#" data-a="abrirModelo">Modelo de demonstração</a><br>') + '<a href="#" data-a="ir" data-t="ajuda" data-aba="creditos">Créditos e licenças</a>';
+const htmlRodape = () => 'Tecelã ' + VERSAO + '<br>' + (SE.memoria ? 'Modo computador de terceiros<br>' : '') + (SE.demo ? '' : '<a href="#" data-a="abrirModelo">Modelo de demonstração</a><br>') + '<a href="#" data-a="ir" data-t="ajuda" data-aba="creditos">Créditos e licenças</a><br><a href="#" data-a="ir" data-t="ajuda" data-aba="sobre">Sugestões e novas versões</a>';
 function render() {
   if (!SE.app) return;
   const chave = UI.tela + '|' + UI.sub + '|' + UI.aba[UI.tela], y = window.scrollY, mesma = render._ult === chave; render._ult = chave;
@@ -1454,7 +1468,7 @@ function telaEntrada(html) { SE.app = false; $('#app').innerHTML = '<div class="
 /* tela inicial, como no PazNoBolso: continuar, abrir arquivo, novo, modelo */
 function telaInicio(temDados) {
   SE.temDados = temDados; const p = CFG.prefs;
-  telaEntrada('<div class="logo">' + SVG_LOGO.v + '</div><p class="versao">Versão ' + VERSAO + ' · ' + DATA_VERSAO + '</p>' + (!p.lgpdOk ? '<p style="text-align:center">Boas-vindas! A Tecelã ajuda a professora e o professor de classe a registrar anotações, atas, observações e perfis e a tecer, com esses fios, o Boletim Descritivo de cada criança.</p><div class="aviso-lgpd">' + AVISO_LGPD + '</div><label class="ck"><input type="checkbox" id="ckLgpd"> <span>Li e entendi como meus dados são guardados.</span></label>' : '') +
+  telaEntrada('<div class="logo">' + SVG_LOGO.v + '</div><p class="versao">Versão ' + VERSAO + ' · ' + DATA_VERSAO + ' · <a href="#" data-a="contatoApp">Sugestões e novas versões</a></p>' + (!p.lgpdOk ? '<p style="text-align:center">Boas-vindas! A Tecelã ajuda a professora e o professor de classe a registrar anotações, atas, observações e perfis e a tecer, com esses fios, o Boletim Descritivo de cada criança.</p><div class="aviso-lgpd">' + AVISO_LGPD + '</div><label class="ck"><input type="checkbox" id="ckLgpd"> <span>Li e entendi como meus dados são guardados.</span></label>' : '') +
     (SE.semBanco ? '<p class="alerta verm">Este navegador não permitiu guardar dados nesta página. A Tecelã vai funcionar só na memória: salve o arquivo antes de fechar.</p>' : '') +
     '<div class="opcoes">' + (temDados ? '<button class="btn pri" data-a="continuar">Continuar' + (p.arquivoNome ? ': ' + e(p.arquivoNome) : '') + '</button>' + (p.ultimaCopia ? '<p class="dica" style="text-align:center;margin:-.3rem 0 .2rem">salvo em ' + new Date(p.ultimaCopia).toLocaleString('pt-BR') + (p.pendente ? ' · há alterações ainda não salvas no arquivo' : '') + '</p>' : '') : '') +
     '<button class="btn' + (temDados ? '' : ' pri') + '" data-a="abrirArquivo">Abrir um arquivo da Tecelã</button>' +
@@ -1499,7 +1513,7 @@ A.terceiros = async () => {
 };
 function telaSenha(msg) {
   const c = CFG.cripto;
-  telaEntrada('<div class="logo">' + SVG_LOGO.v + '</div><p class="versao">Versão ' + VERSAO + ' · ' + DATA_VERSAO + '</p>' + (msg ? '<p class="alerta">' + e(msg) + '</p>' : '') + (c.dica ? '<p class="dica">Dica da senha: ' + e(c.dica) + '</p>' : '') +
+  telaEntrada('<div class="logo">' + SVG_LOGO.v + '</div><p class="versao">Versão ' + VERSAO + ' · ' + DATA_VERSAO + ' · <a href="#" data-a="contatoApp">Sugestões e novas versões</a></p>' + (msg ? '<p class="alerta">' + e(msg) + '</p>' : '') + (c.dica ? '<p class="dica">Dica da senha: ' + e(c.dica) + '</p>' : '') +
     '<form id="fSenha">' + campo('Senha', '<input type="password" id="senha" autofocus autocomplete="current-password">') + '<label class="ck"><input type="checkbox" id="ckRec"> <span>Esqueci a senha, vou usar a chave de recuperação</span></label><label class="cp oculto" id="cpRec"><span class="r">Chave de recuperação</span><input id="chaveRec"></label><p class="erro" id="erroSenha" style="color:var(--verm)"></p><div class="opcoes"><button class="btn pri">Entrar</button></div></form>' +
     '<p class="dica" style="margin-top:1rem"><a href="#" data-a="voltarInicio">← Voltar à tela inicial</a></p>');
   $('#ckRec').addEventListener('change', ev => $('#cpRec').classList.toggle('oculto', !ev.target.checked));
@@ -1719,6 +1733,8 @@ A.apagarArquivo = async d => {
   for (const n of D.anotacoes.filter(n => (n.alunos || []).includes(a.id))) { if (n.alunos.length === 1) await apagar('anotacoes', n.id); else { n.alunos = n.alunos.filter(x => x !== a.id); await salvar('anotacoes', n); } }
   await apagar('alunos', a.id); render();
 };
+
+A.contatoApp = () => dlg({ titulo: 'Sugestões e novas versões', corpo: contatoHtml().replace(/^<div class="cartao contato"[^>]*><h3>[^<]*<\/h3>/, '').replace(/<\/div>$/, ''), cancelar: false, ok: 'Fechar' });
 
 </script>
 <script>/* telas-docs.js */
@@ -2229,7 +2245,7 @@ function verbetesBncc() {
 }
 function blocosVerbeteBncc(id) {
   const [, k, a] = id.split(':'), usos = {}; D.curriculo.forEach(c => (c.bncc || []).forEach(cod => (usos[cod] = usos[cod] || []).push(c)));
-  if (k === 'sobre') return { titulo: 'Como ler a BNCC na Tecelã', blocos: [{ t: 'p', txt: 'A Base Nacional Comum Curricular (BNCC) define as aprendizagens essenciais de cada ano do Ensino Fundamental. Cada habilidade tem um código: EF (Ensino Fundamental), o ano (01 a 09, ou 15 e 69 para as habilidades de um conjunto de anos), o componente (LP, MA, CI…) e o número.' }, { t: 'p', txt: 'Na pedagogia Waldorf, muitos conteúdos são trabalhados em outra idade ou de outro modo, de acordo com o desenvolvimento da criança. Por isso a Tecelã mostra, em cada habilidade, as épocas da escola ligadas a ela, e a comparação do currículo distingue “no mesmo ano”, “em outro ano” e “não contemplada”, sem tratar a diferença como falta.' }, { t: 'p', txt: 'Estes verbetes são de consulta: trazem o texto oficial e não podem ser editados. Para ligar habilidades às épocas, use Currículo e BNCC.' }, { t: 'nota', txt: 'Fonte: Base Nacional Comum Curricular, MEC (versão homologada)' + (BNCC_COMP.CO ? '; Normas sobre Computação na Educação Básica, complemento à BNCC (Parecer CNE/CEB nº 2/2022 e Resolução CNE/CEB nº 1/2022).' : '.') }] };
+  if (k === 'sobre') return { titulo: 'Como ler a BNCC na Tecelã', blocos: [{ t: 'nota', txt: 'Sobre a BNCC nesta versão. ' + AVISO_BNCC_TXT }, { t: 'p', txt: 'A Base Nacional Comum Curricular (BNCC) define as aprendizagens essenciais de cada ano do Ensino Fundamental. Cada habilidade tem um código: EF (Ensino Fundamental), o ano (01 a 09, ou 15 e 69 para as habilidades de um conjunto de anos), o componente (LP, MA, CI…) e o número.' }, { t: 'p', txt: 'Na pedagogia Waldorf, muitos conteúdos são trabalhados em outra idade ou de outro modo, de acordo com o desenvolvimento da criança. Por isso a Tecelã mostra, em cada habilidade, as épocas da escola ligadas a ela, e a comparação do currículo distingue “no mesmo ano”, “em outro ano” e “não contemplada”, sem tratar a diferença como falta.' }, { t: 'p', txt: 'Estes verbetes são de consulta: trazem o texto oficial e não podem ser editados. Para ligar habilidades às épocas, use Currículo e BNCC.' }, { t: 'nota', txt: 'Fonte: Base Nacional Comum Curricular, MEC (versão homologada)' + (BNCC_COMP.CO ? '; Normas sobre Computação na Educação Básica, complemento à BNCC (Parecer CNE/CEB nº 2/2022 e Resolução CNE/CEB nº 1/2022).' : '.') }] };
   if (a === 'sobre') return { titulo: 'Computação: competências e eixos', blocos: [{ t: 'p', txt: 'Desde 2022, a Computação faz parte da BNCC como complemento, organizada em três eixos:' }, { t: 'lista', itens: EIXOS_CO.map(([n, d]) => n + ': ' + d) }, { t: 'h', txt: 'Competências específicas da Computação no Ensino Fundamental' }, { t: 'lista', itens: BNCC_CO_COMPETENCIAS }, { t: 'p', txt: 'O texto de referência recomenda que, nos Anos Iniciais, o pensamento computacional seja trabalhado ao menos no início de forma desplugada, sem computadores, com experiências concretas: jogos, sequências de passos, organização de objetos, códigos e padrões. É um ponto de encontro com a pedagogia Waldorf, que valoriza o fazer concreto e o movimento antes da abstração.' }, { t: 'nota', txt: 'Fonte: Parecer CNE/CEB nº 2/2022 e Resolução CNE/CEB nº 1/2022 (Normas sobre Computação na Educação Básica, complemento à BNCC); explicações e exemplos do documento “BNCC Computação — completo diagramado”.' }] };
   const ano = Number(a), xs = BNCC.filter(h => h[1] === k && h[2].includes(ano)).sort((x, y) => ehEtapa(x) - ehEtapa(y) || x[0].localeCompare(y[0])), b = [{ t: 'p', txt: xs.filter(h => !ehEtapa(h)).length + ' habilidade(s) de ' + BNCC_COMP[k] + ' para o ' + ano + 'º ano.' }];
   let eixo = '';
@@ -2599,7 +2615,7 @@ A.exportarCurric = () => { const s = serieCurr(), xs = D.curriculo.filter(c => c
 function abaBncc() {
   const f = UI.filtro, xs = buscarBncc(f.bq || '', f.bc || '', f.ba || ''), usos = {};
   D.curriculo.forEach(c => (c.bncc || []).forEach(cod => (usos[cod] = usos[cod] || []).push(c)));
-  let h = '<p>Habilidades do Ensino Fundamental da Base Nacional Comum Curricular (versão homologada, MEC)' + (BNCC_COMP.CO ? ' e do complemento de Computação (2022, com explicação e exemplos de cada habilidade; ligue ou desligue em Ajustes)' : '') + '. Busque por palavra ou código e veja em quais épocas da escola cada habilidade está ligada.</p><div class="linha"><input type="search" data-c="bq" placeholder="Palavra ou código (ex.: frações, EF04MA)" value="' + e(f.bq || '') + '" style="flex:1;min-width:200px"><select data-c="bc"><option value="">Todos os componentes</option>' + Object.entries(BNCC_COMP).map(([k, n]) => '<option value="' + k + '"' + (f.bc === k ? ' selected' : '') + '>' + n + '</option>').join('') + '</select><select data-c="ba"><option value="">Todos os anos</option>' + seriesVisiveis().map(n => '<option value="' + n + '"' + (Number(f.ba) === n ? ' selected' : '') + '>' + n + 'º ano</option>').join('') + '</select><button class="btn" data-a="exportarBncc">Exportar</button></div><p class="dica">' + xs.length + ' habilidade(s).</p>';
+  let h = avisoBnccHtml() + '<p>Habilidades do Ensino Fundamental da Base Nacional Comum Curricular (versão homologada, MEC)' + (BNCC_COMP.CO ? ' e do complemento de Computação (2022, com explicação e exemplos de cada habilidade; ligue ou desligue em Ajustes)' : '') + '. Busque por palavra ou código e veja em quais épocas da escola cada habilidade está ligada.</p><div class="linha"><input type="search" data-c="bq" placeholder="Palavra ou código (ex.: frações, EF04MA)" value="' + e(f.bq || '') + '" style="flex:1;min-width:200px"><select data-c="bc"><option value="">Todos os componentes</option>' + Object.entries(BNCC_COMP).map(([k, n]) => '<option value="' + k + '"' + (f.bc === k ? ' selected' : '') + '>' + n + '</option>').join('') + '</select><select data-c="ba"><option value="">Todos os anos</option>' + seriesVisiveis().map(n => '<option value="' + n + '"' + (Number(f.ba) === n ? ' selected' : '') + '>' + n + 'º ano</option>').join('') + '</select><button class="btn" data-a="exportarBncc">Exportar</button></div><p class="dica">' + xs.length + ' habilidade(s).</p>';
   return h + '<div class="cartao rolagem"><table class="tabela"><tr><th>Código</th><th>Componente · anos</th><th>Habilidade</th><th>Na escola</th></tr>' + xs.slice(0, 300).map(x => '<tr><td><b>' + x[0] + '</b></td><td style="font-size:.85rem">' + BNCC_COMP[x[1]] + '<br>' + rotAnos(x[2]) + '</td><td style="font-size:.9rem">' + e(x[3]) + (x[4] ? '<div class="dica">' + e([x[4].e, x[4].o].filter(Boolean).join(' · ')) + (x[4].etapa ? ' · habilidade por etapa' + (x[4].eq ? ' (= ' + x[4].eq + ')' : '') : '') + '</div>' + (x[4].x ? '<details><summary class="dica" style="cursor:pointer">Explicação e exemplos</summary><p style="margin:.3rem 0">' + e(x[4].x) + '</p>' + (x[4].ex ? '<p style="margin:.3rem 0"><i>Exemplos:</i> ' + e(x[4].ex) + '</p>' : '') + '</details>' : '') : '') + '</td><td style="font-size:.85rem">' + (usos[x[0]] || []).map(c => '<a href="#" data-a="abrirEpocaDe" data-id="' + c.id + '">' + c.serie + 'º: ' + e(c.titulo) + '</a>').join('<br>') + '</td></tr>').join('') + '</table>' + (xs.length > 300 ? '<p class="dica">Mostrando 300 de ' + xs.length + '. Refine a busca.</p>' : '') + '</div>';
 }
 A.abrirEpocaDe = d => { UI.aba.curric = 'escola'; ir('curric', d.id); };
@@ -4257,7 +4273,7 @@ A.apagarTudo = async () => {
 /* ---------- AJUDA ---------- */
 T.ajuda = () => {
   const aba = UI.aba.ajuda || 'manual';
-  return '<h1>Ajuda</h1>' + abas([['manual', 'Manual do usuário'], ['creditos', 'Créditos e licenças'], ['privacidade', 'Privacidade e LGPD'], ['sobre', 'Sobre']], aba) + '<div class="linha fim"><button class="btn peq" data-a="imprimirAjuda">Imprimir esta página</button></div><div class="cartao manual" id="txtAjuda">' + ({ manual: MANUAL_HTML, creditos: CREDITOS_HTML, privacidade: PRIVACIDADE_HTML, sobre: SOBRE_HTML }[aba] || MANUAL_HTML) + '</div>';
+  return '<h1>Ajuda</h1>' + abas([['manual', 'Manual do usuário'], ['creditos', 'Créditos e licenças'], ['privacidade', 'Privacidade e LGPD'], ['sobre', 'Sobre, sugestões e versões']], aba) + '<div class="linha fim"><button class="btn peq" data-a="imprimirAjuda">Imprimir esta página</button></div><div class="cartao manual" id="txtAjuda">' + ({ manual: MANUAL_HTML, creditos: CREDITOS_HTML, privacidade: PRIVACIDADE_HTML, sobre: contatoHtml() + SOBRE_HTML }[aba] || MANUAL_HTML) + '</div>';
 };
 A.imprimirAjuda = () => imprimirHtml('<div class="doc" style="font-family:Arial,sans-serif;font-size:11pt">' + $('#txtAjuda').innerHTML + '</div>', 'A4', { s: 15, i: 15, e: 18, d: 15 }, 'Manual_da_Tecela');
 A.manualEm = d => { const id = { 'm-ajustes': 'm-copia', 'm-busca': 'm-menu', 'm-ajuda': 'm-inicio', 'm-turma': 'm-turma' }[d.id] || d.id; UI.aba.ajuda = 'manual'; ir('ajuda'); setTimeout(() => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 80); };
@@ -4882,7 +4898,7 @@ const MANUAL_HTML = `
 <li><b>Épocas de referência:</b> se um ano ainda não tem épocas, “Carregar as épocas de referência” traz uma proposta de épocas para aquele ano (do 1º ao 9º), com componente, semanas, período, conteúdos e objetivos. Ajuste à sua escola.</li>
 <li><b>Conteúdo programático:</b> por ano e componente, com o número de aulas no ano, inclusive das aulas de especialistas. A Tecelã traz como referência o conteúdo programático de uma escola Waldorf brasileira. “Usar e editar este conteúdo” copia a referência para você ajustar; “Voltar à referência” desfaz. Ele entra no Planejamento anual.</li>
 <li><b>Ligar à BNCC:</b> em cada época, “Sugerir habilidades” procura, pelas palavras dos conteúdos, as habilidades mais próximas; “Procurar na BNCC” busca por palavra ou código.</li>
-<li><b>BNCC (consulta):</b> as 1.304 habilidades do Ensino Fundamental, com busca por palavra, código, componente e ano.</li>
+<li><b>BNCC (consulta):</b> as 1.304 habilidades do Ensino Fundamental, com busca por palavra, código, componente e ano. A BNCC vem do documento oficial, sem alterações, e não pode ser editada no app. Se o MEC publicar mudanças e a Tecelã ainda não estiver atualizada, avise por e-mail (veja o aviso no alto da aba).</li>
 <li><b>Computação (complemento de 2022):</b> as 83 habilidades de Computação do 1º ao 9º ano, com o texto oficial, o eixo (pensamento computacional, mundo digital, cultura digital), o objeto de conhecimento e, em “Explicação e exemplos”, como trabalhar cada uma. Há também 21 habilidades “por etapa” (EF15, do 1º ao 5º ano, e EF69, do 6º ao 9º), uma forma alternativa de organizar as mesmas aprendizagens: elas aparecem na consulta e na Biblioteca, mas não entram nas sugestões nem na comparação, para não contar duas vezes. O componente “Computação” já vem nos Cadastros. Se a escola não trabalha com a Computação, desligue em Ajustes: as ligações já feitas continuam guardadas. O texto de referência recomenda começar de forma desplugada, sem computador, o que combina com a pedagogia Waldorf.</li>
 <li><b>Comparação:</b> para cada série e componente, as habilidades contempladas no mesmo ano, em outro ano ou não contempladas. Na pedagogia Waldorf, conteúdo trabalhado em outra idade é escolha pedagógica, não falta.</li></ul>
 
@@ -5047,6 +5063,7 @@ const MANUAL_HTML = `
 <li><b>Licença e autoria:</b> a Tecelã é software livre (GNU GPL versão 3, com termos adicionais). Toda cópia deve manter visível o aviso “Tecelã — criada por Márcio Willians Barreto de Andrade”, e versões modificadas devem se identificar como diferentes da original e informar que o autor original não tem responsabilidade sobre as alterações. O texto completo está nos Créditos.</li></ul>
 
 <h2 id="m-faq">35. Perguntas frequentes</h2>
+<p><b>Como envio uma sugestão ou vejo se há versão nova?</b> Em Ajuda → Sobre, sugestões e versões (ou no link “Sugestões e novas versões” da tela inicial) estão o e-mail do autor e o endereço das versões: <a href="https://github.com/MarcioWillians/tecela/releases/latest" target="_blank" rel="noopener noreferrer">github.com/MarcioWillians/tecela</a>. Não envie dados de crianças, seus ou da entidade, nem prints com nomes. Para atualizar, salve o seu arquivo (💾 Salvar), baixe o novo <i>Tecela.html</i> e substitua o antigo na mesma pasta, com o mesmo nome: assim os dados continuam lá. Se trocar de pasta ou de nome, nada se perde: abra o seu arquivo .tecela.</p>
 <p><b>Quero apagar um verbete que veio com a Tecelã.</b> Abra o verbete e use “Ocultar verbete”. Ele sai da lista e dos relatórios e pode voltar em “Verbetes ocultos”.</p>
 <p><b>Por que um item de Cadastros foi arquivado, e não excluído?</b> Porque ele já é usado em algum registro. Toque no número da coluna “Uso” para ver onde.</p>
 <p><b>Como uso as frases prontas?</b> Veja <a href="#m-frases">Frases prontas</a>: no ✎ Anotar, escolha a frase no campo “Frases prontas”, logo abaixo do texto; ela entra no texto e você completa.</p>
