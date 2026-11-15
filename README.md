@@ -1,6 +1,6 @@
 # Tecelã — Fio a fio, tecendo as linhas da vida escolar
 
-Versão 1.7.1 · Autor e idealizador: Márcio Willians Barreto de Andrade · marciowillians@gmail.com
+Versão 1.8 · Autor e idealizador: Márcio Willians Barreto de Andrade · marciowillians@gmail.com
 Software livre: GNU GPL versão 3, com termos adicionais (arquivo `LICENSE`). Toda cópia deve manter visível o aviso “Tecelã — criada por Márcio Willians Barreto de Andrade”, e versões modificadas devem se identificar como diferentes da original e informar que o autor original não tem responsabilidade sobre as alterações. Bibliotecas e fontes: veja no app, em Ajuda → Créditos e licenças.
 
 A Tecelã é um app em um único arquivo HTML, offline, para a professora ou o professor de classe Waldorf registrar anotações, observações do período, atas, vivências, perfis, o conselho de classe, o planejamento e o acompanhamento das crianças e das famílias, e tecer com esses fios o Boletim Descritivo de cada criança.
@@ -44,5 +44,6 @@ O manual completo está dentro do app, em Ajuda.
    - `teste-fluxo.js`: primeiro uso, senha, arquivo, virada do ano;
    - `teste-novidades.js`, `teste-v12.js`, `teste-v13.js`, `teste-v14.js`, `teste-v141.js`, `teste-v15.js`, `teste-v151.js`, `teste-v16.js`: funções de cada versão;
    - `teste-v171.js`: avisos de sugestões, novas versões e BNCC;
+   - `teste-v18.js`: recuo, prévia e subtítulos do boletim, busca nos textos da turma, PEI – PDI e o botão Anotar ao digitar;
    - `teste-partilha.js`: Partilha pedagógica (classificação de todas as coleções e campos, limpeza dos nomes, arquivo com e sem senha, importação sem alterar nada, desfazer) (no `teste-v12`, `DOCX=pasta` com boletins **fictícios** testa o importador);
    - `teste-varredura.js`: todas as telas no computador, no celular e no tablet com tema escuro.

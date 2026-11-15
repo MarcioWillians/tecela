@@ -277,6 +277,9 @@ mark.pt-susp{background:#ffe866;color:#3a3000;border-radius:3px;padding:0 .15rem
 .cartao.contato{border-left:4px solid var(--azul, #2F6AA8)}
 .entrada .versao a{color:inherit}
 .manual a{overflow-wrap:anywhere}
+/* digitando: o botão Anotar e a barra do celular saem da frente do texto */
+body.digitando .fab{display:none!important}
+@media (max-width:900px){ body.digitando .barra-movel{display:none!important} }
 
 </style>
 <style id="pg"></style>
@@ -336,11 +339,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
    Padrões de criptografia e de arquivos adaptados do PazNoBolso 0.9.
    ========================================================================== */
 'use strict';
-const VERSAO = '1.7.1';
+const VERSAO = '1.8';
 /* anos visíveis nas listas: o 9º ano fica oculto por padrão (na tradição Waldorf ele já é o início do ensino médio);
    uma turma de 9º ano que já exista continua aparecendo */
 const seriesVisiveis = extra => { const r = [1, 2, 3, 4, 5, 6, 7, 8]; if (CFG.prefs.mostrar9 || (typeof D !== 'undefined' && D.turmas && D.turmas.some(t => t.serie === 9)) || extra === 9) r.push(9); return r; };
-const DATA_VERSAO = '6 de novembro de 2026';
+const DATA_VERSAO = '15 de novembro de 2026';
 const AUTORIA = 'Tecelã — criada por Márcio Willians Barreto de Andrade. Software livre como ferramenta de inclusão social e digital. Contra a pirataria: use, estude e compartilhe dentro da licença.';
 const SLOGAN = 'Fio a fio, tecendo as linhas da vida escolar';
 const AUTOR = 'Márcio Willians Barreto de Andrade';
@@ -915,18 +918,26 @@ function docAta(a) {
 }
 
 /* ---------- boletim ---------- */
+/* seções do boletim: texto da turma + texto da criança; título como subtítulo e recuo de primeira linha, se marcados */
+function blocosSecoesBol(tu, mod, al, bol) {
+  const tb = tu.boletim || {}, recuo = !!tb.recuo, b = [];
+  mod.secoes.filter(s => s.ativa).forEach(s => {
+    const ps = nl2p(substituir((tb.textos || {})[s.key], al, tu)).concat(bol ? nl2p(substituir(((bol.secoes || {})[s.key] || {}).texto, al, tu)) : []);
+    if (s.subtitulo && ps.length) b.push({ t: 'h', txt: s.titulo });
+    ps.forEach(p => b.push({ t: 'p', txt: p, recuo }));
+  });
+  return b;
+}
 function docBoletim(bol) {
   const al = IX.alunos[bol.alunoId], tu = IX.turmas[bol.turmaId], mod = modeloDaSerie(tu.serie), b = [];
   const tb = tu.boletim || {};
   b.push({ t: 'pares', linhas: [['Aluno' + (al.genero === 'f' ? 'a' : '') + ': ' + al.nome, 'Sala: ' + tu.serie + 'º ' + (tu.letra || '')], [profTit(tu) + ': ' + (tu.professora || ''), 'Ano: ' + tu.ano]] });
   b.push({ t: 'tit', txt: 'Boletim descritivo' });
   if (tb.citacao) b.push({ t: 'centro', linhas: String(tb.citacao).split('\n').concat(tb.citacaoAutor ? [tb.citacaoAutor] : []), it: true });
-  mod.secoes.filter(s => s.ativa).forEach(s => {
-    nl2p(substituir((tb.textos || {})[s.key], al, tu)).forEach(p => b.push({ t: 'p', txt: p }));
-    nl2p(substituir(((bol.secoes || {})[s.key] || {}).texto, al, tu)).forEach(p => b.push({ t: 'p', txt: p }));
-  });
+  b.push.apply(b, blocosSecoesBol(tu, mod, al, bol));
   if (bol.poemaTexto) {
-    b.push({ t: 'centro', linhas: ['Poema'].concat(bol.poemaTitulo ? [bol.poemaTitulo] : []), negrito: true, espaco: true });
+    if (mod.poemaSubtitulo) b.push({ t: 'h', txt: bol.poemaTitulo || 'Poema' });
+    else b.push({ t: 'centro', linhas: ['Poema'].concat(bol.poemaTitulo ? [bol.poemaTitulo] : []), negrito: true, espaco: true });
     b.push({ t: 'poema', estrofes: String(bol.poemaTexto).split(/\n\s*\n/).map(x => x.split('\n')) });
   }
   (bol.emTempo || []).forEach(x => b.push({ t: 'p', txt: 'Em tempo (' + dataBR(x.data) + '): ' + x.texto }));
@@ -954,7 +965,7 @@ function htmlBloco(x) {
   switch (x.t) {
     case 'tit': return '<p style="text-align:center;font-weight:bold;font-size:1.12em;margin:.4em 0 1em;font-family:' + e(pilhaFonte(fonteDoc('titulo'))) + '">' + e(x.txt) + '</p>';
     case 'centro': return '<p style="text-align:center;' + (x.it ? 'font-style:italic;' : '') + (x.negrito ? 'font-weight:bold;' : '') + (x.peq ? 'font-size:.9em;' : '') + 'margin:' + (x.espaco ? '1.4em' : '.3em') + ' 0 1em">' + x.linhas.map(e).join('<br>') + '</p>';
-    case 'p': return '<p>' + e(x.txt) + '</p>';
+    case 'p': return '<p' + (x.recuo ? ' style="text-indent:1.25cm"' : '') + '>' + e(x.txt) + '</p>';
     case 'h': return '<p style="font-weight:bold;text-align:left;margin-top:1em">' + e(x.txt) + '</p>';
     case 'nota': return '<p style="font-size:.88em;font-style:italic">' + e(x.txt) + '</p>';
     case 'pares': return '<table style="width:100%;border-collapse:collapse;margin-bottom:1em">' + x.linhas.map(l => '<tr><td style="padding:2px 0">' + e(l[0]) + '</td><td style="text-align:right;padding:2px 0">' + e(l[1]) + '</td></tr>').join('') + '</table>';
@@ -1006,7 +1017,7 @@ async function docxBlob(doc) {
   for (const x of doc.blocos) {
     if (x.t === 'tit') filhos.push(par(x.txt, { alignment: CE, spacing: { before: 120, after: 240 } }, { bold: true, size: 26, font: FT }));
     else if (x.t === 'centro') x.linhas.forEach((l, i) => filhos.push(par(l, { alignment: CE, spacing: { before: i === 0 && x.espaco ? 280 : 0, after: i === x.linhas.length - 1 ? 240 : 0, line: 300 } }, { italics: !!x.it, bold: !!x.negrito, size: x.peq ? 21 : 24 })));
-    else if (x.t === 'p') filhos.push(par(x.txt, { alignment: J }));
+    else if (x.t === 'p') filhos.push(par(x.txt, Object.assign({ alignment: J }, x.recuo ? { indent: { firstLine: 709 } } : {})));
     else if (x.t === 'h') filhos.push(par(x.txt, { spacing: { before: 200, after: 100 } }, { bold: true }));
     else if (x.t === 'nota') filhos.push(par(x.txt, {}, { italics: true, size: 21 }));
     else if (x.t === 'lista') x.itens.forEach(i => filhos.push(par('• ' + i, { indent: { left: 360 } })));
@@ -1355,7 +1366,7 @@ const BIBLIO = [
 const UI = { tela: 'painel', aba: {}, sub: null, filtro: {} };
 const GRUPOS = [
   ['Dia a dia', [['painel', 'Painel', '✿'], ['anot', 'Anotações', '✎'], ['obs', 'Observação do período', '◎'], ['faltas', 'Faltas', '✓']]],
-  ['Documentos', [['bol', 'Boletins', '❦'], ['atas', 'Atas', '❏'], ['conselho', 'Conselho de classe', '⚖'], ['perfis', 'Perfil do aluno', '☺'], ['pei', 'PEI', '✦'], ['acomp', 'Acompanhamento', '❂'], ['relat', 'Relatórios', '▥']]],
+  ['Documentos', [['bol', 'Boletins', '❦'], ['atas', 'Atas', '❏'], ['conselho', 'Conselho de classe', '⚖'], ['perfis', 'Perfil do aluno', '☺'], ['pei', 'PEI – PDI', '✦'], ['acomp', 'Acompanhamento', '❂'], ['relat', 'Relatórios', '▥']]],
   ['Planejar', [['planej', 'Planejamento', '◫'], ['repert', 'Repertório', '♫'], ['curric', 'Currículo e BNCC', '❖'], ['agenda', 'Calendário', '▦'], ['tarefas', 'Tarefas', '☑']]],
   ['A turma', [['turma', 'Turma e alunos', '◍'], ['viv', 'Vivências', '✺'], ['reforco', 'Reforço', '✚'], ['comunic', 'Comunicados', '✉'], ['combinados', 'Combinados', '❀']]],
   ['Ajustar', [['biblio', 'Biblioteca', '❧'], ['cadastros', 'Cadastros', '☰'], ['timbrado', 'Papel timbrado', '▤'], ['ajustes', 'Ajustes e arquivo', '⚙'], ['ajuda', 'Ajuda', '?']]]];
@@ -1449,6 +1460,20 @@ document.addEventListener('keydown', ev => {
 });
 /* o botão ✎ Anotar encolhe enquanto se rola a página, para não cobrir botões */
 let tFab = null;
+/* enquanto se digita num campo de texto, o botão ✎ Anotar (e a barra do celular) sai da frente,
+   e a linha que está sendo escrita fica sempre à vista, acima do teclado */
+const CAMPO_TEXTO = 'textarea, input[type=text], input[type=search], input:not([type])';
+document.addEventListener('focusin', ev => { if (ev.target.matches && ev.target.matches(CAMPO_TEXTO) && !ev.target.closest('#modais')) document.body.classList.add('digitando'); });
+document.addEventListener('focusout', () => setTimeout(() => { const a = document.activeElement; if (!(a && a.matches && a.matches(CAMPO_TEXTO))) document.body.classList.remove('digitando'); }, 0));
+function cursorVisivel(el) {
+  if (!el || el.tagName !== 'TEXTAREA' || el.closest('#modais')) return;
+  const r = el.getBoundingClientRect(), len = el.value.length || 1, pos = el.selectionEnd == null ? len : el.selectionEnd;
+  const lh = parseFloat(getComputedStyle(el).lineHeight) || 22, y = pos >= len - 1 ? r.bottom - 6 : r.top + Math.min(r.height, r.height * pos / len + lh);
+  const alturaVisivel = window.visualViewport ? window.visualViewport.height : innerHeight, folga = 40;
+  if (y > alturaVisivel - folga) window.scrollBy(0, y - (alturaVisivel - folga) + lh);
+}
+document.addEventListener('input', ev => { if (ev.target.tagName === 'TEXTAREA') requestAnimationFrame(() => cursorVisivel(ev.target)); });
+if (window.visualViewport) window.visualViewport.addEventListener('resize', () => { const a = document.activeElement; if (a && a.tagName === 'TEXTAREA') cursorVisivel(a); });
 window.addEventListener('scroll', () => { const f = $('.fab'); if (!f) return; f.classList.add('compacto'); clearTimeout(tFab); tFab = setTimeout(() => f.classList.remove('compacto'), 900); }, { passive: true });
 A.mais = () => dlg({ titulo: 'Menu', ok: false, cancelar: 'Fechar', corpo: GRUPOS.map(([g, xs]) => '<p class="dica" style="margin:.6rem 0 .2rem">' + g + '</p><div class="menu-mais">' + xs.map(([k, r, ic]) => '<button type="button" class="btn" data-x="c" data-a="ir" data-t="' + k + '"><span class="ic">' + ic + '</span> ' + r + '</button>').join('') + '</div>').join('') });
 C_.busca = el => { UI.filtro.busca = el.value.trim(); if (UI.filtro.busca.length < 2) return; if (UI.tela !== 'busca') { UI.voltarBusca = UI.tela; } ir('busca'); const i = $('.busca'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } };
@@ -1955,9 +1980,22 @@ A.exportarTodos = async () => {
   const para = []; alunosDaTurma(t.id).forEach(a => (a.responsaveis || []).forEach(r => r.email && para.push(r.email)));
   saidaDocumento(Object.assign({}, docs[0], { nome: 'Boletins_' + t.serie + 'ano' + t.letra + '_' + t.ano, titulo: 'Boletins descritivos — ' + rotuloTurma(t), blocos }), { para, assunto: 'Boletins descritivos — ' + rotuloTurma(t) });
 };
+/* prévia dos textos da turma como sairão no boletim (com o nome de uma criança da turma nos marcadores) */
+function docTextosTurma(t, a) {
+  const tb = t.boletim || {}, mod = modeloDaSerie(t.serie), b = [{ t: 'tit', txt: 'Textos da turma' }];
+  if (tb.citacao) b.push({ t: 'centro', linhas: String(tb.citacao).split('\n').concat(tb.citacaoAutor ? [tb.citacaoAutor] : []), it: true });
+  const xs = blocosSecoesBol(t, mod, a || { nome: 'Nome da criança', chamada: 'Nome da criança', genero: 'f' }, null);
+  return { titulo: 'Textos da turma', blocos: xs.length ? b.concat(xs) : b.concat([{ t: 'nota', txt: 'Ainda não há textos da turma.' }]) };
+}
+A.previaTurma = async () => {
+  await descarregarFila(); const t = turmaAtual(), al = alunosDaTurma(t.id), a = al[0];
+  dlg({ titulo: 'Prévia dos textos da turma', largo: true, cancelar: false, ok: 'Fechar', corpo: '<p class="dica">Assim os textos da turma entram no boletim' + (a ? ', aqui com o nome de ' + e(primeiroNome(a)) + ' nos marcadores' : '') + '. O texto de cada criança vem logo depois, em cada seção.</p><div class="previa">' + htmlDoc(docTextosTurma(t, a), true) + '</div>' });
+};
 function abaBolTurma(t) {
   t.boletim = t.boletim || { textos: {} }; const tb = t.boletim, mod = modeloDaSerie(t.serie), as = tb.assinaturas || {};
   let h = '<div data-rec="turmas:' + t.id + '"><div class="cartao"><p>O <b>texto da turma</b> é escrito uma vez e entra no boletim de todas as crianças, logo antes do texto individual de cada seção.</p><p class="dica">Marcadores: <code>{nome}</code> vira o nome de chamada; <code>{ele/ela}</code>, <code>{o/a}</code>, <code>{dele/dela}</code>, <code>{aluno/aluna}</code> escolhem a forma pelo gênero cadastrado. Qualquer par entre chaves com barra funciona, como <code>{menino/menina}</code>.</p></div>' +
+    '<p class="dica">Dica: clique com o botão direito na palavra sublinhada para ver sugestões.</p>' +
+    '<div class="cartao"><h3>Aparência do texto</h3>' + ck('boletim.recuo', tb.recuo, 'Recuo na primeira linha dos parágrafos (vale para o boletim inteiro, na tela, no PDF e no Word)', 'data-rr="1"') + '<p class="dica">Para mostrar o título de uma seção como subtítulo no boletim, marque “Subtítulo” na aba Seções do ' + t.serie + 'º ano.</p><div class="linha"><button type="button" class="btn" data-a="previaTurma">Visualizar os textos da turma</button></div></div>' +
     '<div class="cartao"><h3>Citação</h3>' + campo('Texto da citação', area('boletim.citacao', tb.citacao, 'style="min-height:4.5rem"')) + campo('Autor', inp('boletim.citacaoAutor', tb.citacaoAutor)) + '</div>';
   h += mod.secoes.filter(s => s.ativa).map(s => '<div class="secao-bol"><h4>' + e(s.titulo) + (s.key === 'intro' ? ' <button type="button" class="btn peq" data-a="rascunhoIntro">✦ Rascunho da introdução</button>' : '') + '</h4>' + area('boletim.textos.' + s.key, (tb.textos || {})[s.key], 'placeholder="Texto da turma para esta seção (opcional)"') + '</div>').join('');
   h += '<div class="cartao"><h3>Assinaturas (padrão da turma)</h3>' + ck('boletim.assinaturas.prof', as.prof, 'Linha de assinatura da professora') + ck('boletim.assinaturas.coord', as.coord, 'Linha de assinatura da coordenação') + campo('Nome da coordenação (opcional)', inp('boletim.assinaturas.coordNome', as.coordNome)) + '</div></div>';
@@ -1995,7 +2033,7 @@ A.rascunhoIntro = async () => {
 };
 function abaBolSecoes(t) {
   const m = modeloDaSerie(t.serie);
-  return '<div class="cartao" data-rec="modelosBoletim:' + m.id + '"><p>As seções valem para todas as turmas do <b>' + t.serie + 'º ano</b>. Ligue, desligue, renomeie e reordene. Cabeçalho, título, citação e poema do novo ano são fixos.</p><table class="tabela">' + m.secoes.map((s, i) => '<tr><td style="width:2.5rem"><input type="checkbox" data-b="secoes.' + i + '.ativa"' + (s.ativa ? ' checked' : '') + ' title="Ativa"></td><td>' + inp('secoes.' + i + '.titulo', s.titulo) + '</td><td style="white-space:nowrap"><button class="icone-btn" data-a="moverSecao" data-i="' + i + '" data-d="-1" title="Subir">↑</button><button class="icone-btn" data-a="moverSecao" data-i="' + i + '" data-d="1" title="Descer">↓</button>' + (s.propria ? '<button class="icone-btn" data-a="remSecao" data-i="' + i + '" title="Remover">✕</button>' : '') + '</td></tr>').join('') + '</table><button class="btn peq" data-a="addSecao" style="margin-top:.6rem">+ Nova seção</button></div>';
+  return '<div class="cartao" data-rec="modelosBoletim:' + m.id + '"><p>As seções valem para todas as turmas do <b>' + t.serie + 'º ano</b>. Ligue, desligue, renomeie e reordene. Cabeçalho, título, citação e poema do novo ano são fixos.</p><table class="tabela"><tr><th>Ativa</th><th>Título da seção</th><th title="Mostrar o título como subtítulo no boletim">Subtítulo</th><th></th></tr>' + m.secoes.map((s, i) => '<tr><td style="width:2.5rem"><input type="checkbox" data-b="secoes.' + i + '.ativa"' + (s.ativa ? ' checked' : '') + ' title="Ativa"></td><td>' + inp('secoes.' + i + '.titulo', s.titulo) + '</td><td style="width:5rem;text-align:center"><input type="checkbox" data-b="secoes.' + i + '.subtitulo"' + (s.subtitulo ? ' checked' : '') + ' title="Mostrar o título como subtítulo no boletim" aria-label="Subtítulo: ' + e(s.titulo) + '"></td><td style="white-space:nowrap"><button class="icone-btn" data-a="moverSecao" data-i="' + i + '" data-d="-1" title="Subir">↑</button><button class="icone-btn" data-a="moverSecao" data-i="' + i + '" data-d="1" title="Descer">↓</button>' + (s.propria ? '<button class="icone-btn" data-a="remSecao" data-i="' + i + '" title="Remover">✕</button>' : '') + '</td></tr>').join('') + '</table><button class="btn peq" data-a="addSecao" style="margin-top:.6rem">+ Nova seção</button>' + ck('poemaSubtitulo', m.poemaSubtitulo, 'Poema do ano: mostrar o título do poema como subtítulo, como as seções (desmarcado, fica centralizado, com “Poema” acima)') + '<p class="dica">“Subtítulo” mostra o título da seção no boletim, em negrito, antes do texto. Desmarcado, a seção entra só com o texto, como antes.</p></div>';
 }
 A.moverSecao = async d => { const m = modeloDaSerie(turmaAtual().serie), i = Number(d.i), j = i + Number(d.d); if (j < 0 || j >= m.secoes.length) return; [m.secoes[i], m.secoes[j]] = [m.secoes[j], m.secoes[i]]; await salvar('modelosBoletim', m); render(); };
 A.addSecao = async () => { const v = await dlg({ titulo: 'Nova seção', ok: 'Incluir', corpo: campo('Título', '<input name="t" autofocus>'), validar: v => v.t.trim() ? null : 'Informe o título.' }); if (!v) return; const m = modeloDaSerie(turmaAtual().serie); m.secoes.splice(m.secoes.length - 1, 0, { key: 's' + uid(), titulo: v.t.trim(), ativa: true, propria: true }); await salvar('modelosBoletim', m); render(); };
@@ -2005,6 +2043,7 @@ function editorBoletim(b) {
   const versoes = D.boletins.filter(x => x.alunoId === b.alunoId && x.turmaId === b.turmaId && x.id !== b.id);
   let h = '<div class="linha"><button class="btn" data-a="voltarSub">← Boletins</button><h2 style="margin:0">' + e(al.nome) + '</h2>' + (fin ? '<span class="etq fin">finalizado</span>' : '<span class="etq rasc">rascunho</span>') + '</div>';
   h += '<div class="linha" style="margin:.8rem 0">' + (fin ? '<button class="btn pri" data-a="alterarBol" data-id="' + b.id + '">Em tempo ou nova versão</button><button class="btn" data-a="conferirBol" data-id="' + b.id + '">Conferir impressão digital</button>' : '<button class="btn pri" data-a="salvarBol" data-id="' + b.id + '">Salvar</button><button class="btn" data-a="trazerBol" data-id="' + b.id + '">Trazer novas anotações</button><button class="btn" data-a="rascunhoBol" data-id="' + b.id + '" title="Usa a última observação do período">◎ Rascunho nas seções vazias</button><button class="btn" data-a="finalizarBol" data-id="' + b.id + '">Finalizar</button>') + '<button class="btn" data-a="sairBol" data-id="' + b.id + '">Imprimir, exportar ou enviar</button><button class="btn" data-a="previaBol">Atualizar prévia</button></div>';
+  h += '<p class="dica">Dica: clique com o botão direito na palavra sublinhada para ver sugestões.</p>';
   if (versoes.length) h += '<p class="dica">Outras versões: ' + versoes.map(v => '<a href="#" data-a="abrirBolId" data-id="' + v.id + '">' + (v.estado === 'finalizado' ? 'finalizada em ' + new Date(v.finalizadoEm).toLocaleDateString('pt-BR') : 'rascunho de ' + new Date(v.criado).toLocaleDateString('pt-BR')) + '</a>').join(' · ') + '</p>';
   const pend = D.anotacoes.filter(x => x.estrela && !x.sigilo && x.secao && (x.alunos || []).includes(b.alunoId) && x.turmaId === b.turmaId && !(b.importadas || []).includes(x.id)).length;
   if (pend && !fin) h += '<p class="alerta">Há ' + pend + ' anotação(ões) com estrela ainda não trazida(s) para este boletim.</p>';
@@ -2701,7 +2740,7 @@ const RELATORIOS = [
   ['planoAnual', 'Planejamento anual', 'O planejamento do ano da turma: épocas, datas, conteúdos, objetivos e habilidades da BNCC (abre a tela do planejamento).'],
   ['planoEpoca', 'Planos de época', 'Cada época com objetivos, conteúdos, rotina da manhã e o diário dia a dia (abre a tela do planejamento).'],
   ['combinados', 'Combinados da turma', 'O guia de combinados da turma com as famílias, com as versões do ano.'],
-  ['pei', 'Plano Educacional Individualizado', 'Os PEIs das crianças que precisam de adaptações (abre a tela do PEI).'],
+  ['pei', 'PEI – PDI (Plano Educacional Individualizado)', 'Os PEIs das crianças que precisam de adaptações (abre a tela do PEI).'],
   ['reforco', 'Reforço escolar', 'Lista geral da turma ou de uma criança, com matérias, datas e situação.'],
   ['aniver', 'Aniversariantes do ano', 'Por mês, com o dia da semana e sugestão de data quando cai no fim de semana ou em dia sem aula.'],
   ['poemas', 'Poemas', 'Um poema, todos os poemas de uma criança ou os poemas de um ano de toda a turma, um por folha.'],
@@ -3133,10 +3172,10 @@ TIPOS_DOC.pei = {
 const peiAtivo = (t, aid) => { const d = t && peiDe(t, aid); return d || null; };
 const adaptacoesPei = d => { const s = (d.secoes || []).find(x => x.k === 'adaptacoes'); return s ? String(s.txt || '').split('\n').map(l => l.replace(/^[-•*]\s*/, '').trim()).filter(l => l && !/:\s*$/.test(l)).join(' · ') : ''; };
 T.pei = () => {
-  const t = turmaAtual(); if (!t) return '<h1>PEI</h1>' + vazio('Cadastre uma turma primeiro.');
-  if (UI.sub && IX.documentos[UI.sub]) return editorDoc(IX.documentos[UI.sub], { voltar: 'PEI', alerta: '<p class="alerta" style="background:var(--violC)">Documento sigiloso. Ele só sai do app quando você exporta.</p>' });
+  const t = turmaAtual(); if (!t) return '<h1>PEI – PDI</h1>' + vazio('Cadastre uma turma primeiro.');
+  if (UI.sub && IX.documentos[UI.sub]) return editorDoc(IX.documentos[UI.sub], { voltar: 'PEI – PDI', alerta: '<p class="alerta" style="background:var(--violC)">Documento sigiloso. Ele só sai do app quando você exporta.</p>' });
   const al = alunosDaTurma(t.id); if (!al.length) return '<h1>Plano Educacional Individualizado</h1>' + vazio('Cadastre os alunos da turma.');
-  return '<h1>Plano Educacional Individualizado (PEI)</h1><p>Para a criança que precisa de adaptações. O rascunho já traz o perfil, os pontos de atenção, a observação do período, o currículo da série e o reforço. Depois de criado, as adaptações aparecem como lembrete no boletim, no plano de época e no pré-conselho.</p><div class="cartao rolagem"><table class="tabela"><tr><th>Criança</th><th>Sinais</th><th>PEI de ' + t.ano + '</th><th></th></tr>' + al.map(a => { const d = peiDe(t, a.id), ult = d && (d.versoes || []).slice(-1)[0]; return '<tr><td><b>' + e(a.nome) + '</b></td><td>' + [a.nee ? '<span class="flag az">NEE</span>' : '', a.acomp ? '<span class="flag az">acompanhamento</span>' : '', (a.atencao || []).filter(x => x.situacao !== 'resolvido').length ? '<span class="flag vi">pontos de atenção</span>' : ''].join(' ') + '</td><td>' + (d ? (ult ? 'versão ' + ult.n + ' (' + dataBR(ult.data.slice(0, 10)) + ')' : 'rascunho') : '<span class="dica">—</span>') + '</td><td>' + (d ? '<button class="btn peq" data-a="abrirDocSub" data-id="' + d.id + '">Abrir</button>' : '<button class="btn peq" data-a="peiNovo" data-al="' + a.id + '">Criar</button>') + '</td></tr>'; }).join('') + '</table></div>';
+  return '<h1>PEI – PDI: Plano Educacional Individualizado</h1><p class="dica">PEI (Plano Educacional Individualizado) e PDI (Plano de Desenvolvimento Individual) são nomes usados para o mesmo tipo de plano.</p><p>Para a criança que precisa de adaptações. O rascunho já traz o perfil, os pontos de atenção, a observação do período, o currículo da série e o reforço. Depois de criado, as adaptações aparecem como lembrete no boletim, no plano de época e no pré-conselho.</p><div class="cartao rolagem"><table class="tabela"><tr><th>Criança</th><th>Sinais</th><th>PEI de ' + t.ano + '</th><th></th></tr>' + al.map(a => { const d = peiDe(t, a.id), ult = d && (d.versoes || []).slice(-1)[0]; return '<tr><td><b>' + e(a.nome) + '</b></td><td>' + [a.nee ? '<span class="flag az">NEE</span>' : '', a.acomp ? '<span class="flag az">acompanhamento</span>' : '', (a.atencao || []).filter(x => x.situacao !== 'resolvido').length ? '<span class="flag vi">pontos de atenção</span>' : ''].join(' ') + '</td><td>' + (d ? (ult ? 'versão ' + ult.n + ' (' + dataBR(ult.data.slice(0, 10)) + ')' : 'rascunho') : '<span class="dica">—</span>') + '</td><td>' + (d ? '<button class="btn peq" data-a="abrirDocSub" data-id="' + d.id + '">Abrir</button>' : '<button class="btn peq" data-a="peiNovo" data-al="' + a.id + '">Criar</button>') + '</td></tr>'; }).join('') + '</table></div>';
 };
 A.abrirDocSub = d => { UI.sub = d.id; render(); window.scrollTo(0, 0); };
 A.peiNovo = async d => { const t = turmaAtual(), x = await criarDoc('pei', { turmaId: t.id, alunoId: d.al }); UI.sub = x.id; render(); window.scrollTo(0, 0); aviso('Rascunho do PEI criado com o que já está registrado.'); };
@@ -4137,6 +4176,7 @@ T.busca = () => {
   D.anotacoes.filter(n => tem(n.texto)).forEach(n => r.push(['Anotação', dataBR(n.data) + ' · ' + nomesDe(n.alunos), trecho(n.texto) + (n.sigilo ? ' <span class="etq sig">sigilosa</span>' : ''), 'editarAnot', { id: n.id }]));
   D.atas.filter(a => ['assunto', 'pauta', 'texto', 'deliberacoes', 'conclusao', 'cabecalho'].some(k => tem(a[k]))).forEach(a => r.push(['Ata', nomeReuniao(a) + ' · ' + dataBR(a.data), trecho(['assunto', 'pauta', 'texto', 'deliberacoes', 'conclusao'].map(k => a[k] || '').join(' ')), 'abrirAta', { id: a.id }]));
   D.boletins.filter(b => tem(b.poemaTexto) || tem(b.poemaTitulo) || Object.values(b.secoes || {}).some(s => tem(s.texto))).forEach(b => { const a = IX.alunos[b.alunoId], tu = IX.turmas[b.turmaId]; if (a && tu) r.push(['Boletim', a.nome + ' · ' + tu.ano, trecho([b.poemaTitulo, b.poemaTexto].concat(Object.values(b.secoes || {}).map(s => s.texto)).join(' ')), 'abrirBolId2', { id: b.id, tu: tu.id }]); });
+  D.turmas.forEach(tu => { const tb = tu.boletim || {}, mod = modeloDaSerie(tu.serie), xs = mod.secoes.filter(s => tem((tb.textos || {})[s.key])); if (tem(tb.citacao)) r.push(['Boletim · texto da turma', rotuloTurma(tu) + ' · Citação', trecho(tb.citacao), 'abrirTextosTurma', { tu: tu.id, sec: 'citacao' }]); xs.forEach(s => r.push(['Boletim · texto da turma', rotuloTurma(tu) + ' · ' + s.titulo, trecho(tb.textos[s.key]), 'abrirTextosTurma', { tu: tu.id, sec: s.key }])); });
   D.vivencias.filter(v => tem(v.titulo) || tem(v.descricao) || tem(v.local)).forEach(v => r.push(['Vivência', dataBR(v.data) + ' · ' + v.titulo, trecho(v.descricao || v.local), 'abrirViv', { id: v.id }]));
   D.eventos.filter(v => tem(v.titulo) || tem(v.obs)).forEach(v => r.push(['Evento', dataBR(v.data) + ' · ' + v.titulo, trecho(v.obs), 'editarEvento', { id: v.id }]));
   D.tarefas.filter(x => tem(x.titulo) || tem(x.obs)).forEach(x => r.push(['Tarefa', x.titulo, trecho(x.obs), 'editarTarefa', { id: x.id }]));
@@ -4144,7 +4184,7 @@ T.busca = () => {
   BNCC.filter(h => tem(h[0]) || tem(h[3])).slice(0, 60).forEach(h => r.push(['BNCC', h[0] + ' · ' + BNCC_COMP[h[1]] + ' · ' + rotAnos(h[2]), trecho(h[3]), 'ir', { t: 'biblio', sub: 'bncc:' + h[1] + ':' + h[2][0] }]));
   D.conselhos.filter(c => tem(c.decisoes) || Object.values(c.alunos || {}).some(x => tem(x.proposta) || tem(x.fala))).forEach(c => r.push(['Conselho', rotPeriodo(c.periodo), trecho([c.decisoes].concat(Object.values(c.alunos || {}).map(x => (x.fala || '') + ' ' + (x.proposta || ''))).join(' ')), 'ir', { t: 'conselho' }]));
   const txtDoc = d => [d.titulo].concat((d.secoes || []).map(x => [x.tit, x.txt || ''].concat((x.linhas || []).map(l => l.join(' '))).concat((x.dias || []).map(y => (x.campos || []).map(([k]) => y[k] || '').join(' '))).join(' '))).join(' ');
-  const ROT_DOC = { combinados: 'Combinados', pei: 'PEI', anual: 'Planejamento', epoca: 'Plano de época', refAnual: 'Referência', refEpoca: 'Referência' };
+  const ROT_DOC = { combinados: 'Combinados', pei: 'PEI – PDI', anual: 'Planejamento', epoca: 'Plano de época', refAnual: 'Referência', refEpoca: 'Referência' };
   D.documentos.filter(d => ROT_DOC[d.tipo] && tem(txtDoc(d))).forEach(d => { const a = d.alunoId && IX.alunos[d.alunoId], tu = d.turmaId && IX.turmas[d.turmaId]; r.push([ROT_DOC[d.tipo], d.titulo + (a ? ' · ' + a.nome : '') + (tu ? ' · ' + tu.ano : ''), trecho(txtDoc(d)), 'abrirDocBusca', { id: d.id }]); });
   D.reforcos.filter(x => tem(x.topico) || tem(x.obs) || tem(nomeItem('componentes', x.componente))).forEach(x => r.push(['Reforço', nomesDe(x.alunos) + ' · ' + (x.datas || []).map(d => dataBR(d).slice(0, 5)).join(', '), trecho([rotRef(x), x.obs].join(' ')), 'abrirReforcoBusca', { id: x.id, tu: x.turmaId }]));
   D.contatos.filter(x => tem(x.assunto) || tem(x.texto) || tem(x.combinados)).forEach(x => r.push(['Contato com a família', nomesDe([x.alunoId]) + ' · ' + dataBR(x.data), trecho([x.assunto, x.texto, x.combinados].join(' ')), 'abrirContatoBusca', { id: x.id, tu: x.turmaId }]));
@@ -4158,6 +4198,10 @@ A.abrirDocBusca = async d => { const x = IX.documentos[d.id]; if (!x) return; if
 A.abrirContatoBusca = async d => { if (CFG.prefs.turmaId !== d.tu) await prefs({ turmaId: d.tu }); UI.filtro.ctAl = ''; ir('acomp', null, 'contatos'); setTimeout(() => A.editarContato(d), 50); };
 A.abrirRepBusca = async d => { const r = IX.repertorio[d.id]; if (CFG.prefs.turmaId !== d.tu && IX.turmas[d.tu] && !cadeiaTurmas(turmaAtual() || {}).some(x => x.id === d.tu)) await prefs({ turmaId: d.tu }); UI.filtro.repTipo = ''; UI.filtro.repEp = ''; UI.filtro.repBusca = r ? r.titulo : ''; ir('repert'); };
 A.abrirReforcoBusca = async d => { if (CFG.prefs.turmaId !== d.tu) await prefs({ turmaId: d.tu }); A.abrirReforco(d); };
+A.abrirTextosTurma = async d => {
+  if (CFG.prefs.turmaId !== d.tu) await prefs({ turmaId: d.tu }); UI.aba.bol = 'turma'; ir('bol');
+  setTimeout(() => { const el = d.sec === 'citacao' ? $('[data-b="boletim.citacao"]') : $('[data-b="boletim.textos.' + d.sec + '"]'); if (el) { el.scrollIntoView({ block: 'center' }); el.focus({ preventScroll: true }); } }, 120);
+};
 A.abrirBolId2 = async d => { if (CFG.prefs.turmaId !== d.tu) await prefs({ turmaId: d.tu }); ir('bol', d.id); };
 
 /* ---------- pendências do Painel: o que pede atenção agora ---------- */
@@ -4301,7 +4345,7 @@ const PARTILHA = {
       secoes: { vai: ['k', 'tit', 'tipo', 'txt', 'cols', 'linhas', 'campos', 'auto', 'manual', 'naoImprimir'], fica: ['dias'] }, secoesFora: ['avaliacao', 'anterior'] },
     repertorio: { rot: 'Repertório', vai: ['tipo', 'titulo', 'autor', 'rotina', 'texto'], fica: ['turmaId', 'epocaId', 'usos'] },
     biblioteca: { rot: 'Biblioteca', vai: ['grupo', 'titulo', 'texto', 'fonte', 'ordem'], fica: ['origem', 'oculto', 'editado'] },
-    modelosBoletim: { rot: 'Modelo de boletim', vai: ['serie', 'secoes'], fica: [] },
+    modelosBoletim: { rot: 'Modelo de boletim', vai: ['serie', 'secoes', 'poemaSubtitulo'], fica: [] },
     comunicados: { rot: 'Modelo de comunicado', vai: ['nome', 'texto'], fica: ['chave'] },
     vivencias: { rot: 'Vivência', vai: ['tipo', 'titulo', 'duracao', 'descricao', 'info'], fica: ['turmaId', 'data', 'hora', 'local', 'responsavel', 'epocaId', 'todos', 'participantes', 'repete', 'repeteAte', 'dataFim', 'excecoes', 'avisar', 'obs'],
       info: { vai: ['programacao', 'vestimenta', 'alimentacao', 'cardapio', 'compras', 'percurso', 'adicionais'], fica: ['endereco', 'contato', 'concentracao', 'saida', 'chegada', 'turmasDatas', 'adultos', 'orcamento', 'pagamento', 'documentacao'] } }
@@ -4734,7 +4778,7 @@ A.impConfirmar = async () => {
 const MANUAL_HTML = `
 <p>Este manual funciona sem internet. O botão <b>?</b> no alto de cada tela abre a parte correspondente. Use “Imprimir esta página” para ter uma cópia em papel ou em PDF.</p>
 <h3>Sumário</h3>
-<ol><li><a href="#m-inicio">Primeiros passos</a></li><li><a href="#m-menu">O menu, os atalhos e o Painel</a></li><li><a href="#m-turma">Escola, turma e crianças</a></li><li><a href="#m-anot">Anotações</a></li><li><a href="#m-frases">Frases prontas</a></li><li><a href="#m-obs">Observação do período</a></li><li><a href="#m-faltas">Faltas</a></li><li><a href="#m-atas">Atas</a></li><li><a href="#m-bol">Boletim Descritivo</a></li><li><a href="#m-poema">Poema do ano</a></li><li><a href="#m-conselho">Conselho de classe</a></li><li><a href="#m-perfis">Perfil do aluno</a></li><li><a href="#m-relat">Relatórios</a></li><li><a href="#m-viv">Vivências</a></li><li><a href="#m-agenda">Calendário</a></li><li><a href="#m-tarefas">Tarefas e lembretes</a></li><li><a href="#m-curric">Currículo e BNCC</a></li><li><a href="#m-biblio">Biblioteca Waldorf</a></li><li><a href="#m-planej">Planejamento</a></li><li><a href="#m-pei">PEI — Plano Educacional Individualizado</a></li><li><a href="#m-reforco">Reforço escolar</a></li><li><a href="#m-combinados">Combinados da turma</a></li><li><a href="#m-acomp">Acompanhamento: contatos, entrevista e estudo de criança</a></li><li><a href="#m-comunic">Comunicados às famílias</a></li><li><a href="#m-repert">Repertório da turma</a></li><li><a href="#m-ano">Ano letivo: dias, festas e materiais</a></li><li><a href="#m-cadastros">Cadastros</a></li><li><a href="#m-atencao">Pontos de atenção</a></li><li><a href="#m-importar">Importar boletins anteriores</a></li><li><a href="#m-timbrado">Papel timbrado, exportar e enviar</a></li><li><a href="#m-copia">Salvar o arquivo</a></li><li><a href="#m-partilha">Partilha pedagógica</a></li><li><a href="#m-virada">Virada do ano letivo</a></li><li><a href="#m-seguranca">Segurança e LGPD</a></li><li><a href="#m-faq">Perguntas frequentes</a></li></ol>
+<ol><li><a href="#m-inicio">Primeiros passos</a></li><li><a href="#m-menu">O menu, os atalhos e o Painel</a></li><li><a href="#m-turma">Escola, turma e crianças</a></li><li><a href="#m-anot">Anotações</a></li><li><a href="#m-frases">Frases prontas</a></li><li><a href="#m-obs">Observação do período</a></li><li><a href="#m-faltas">Faltas</a></li><li><a href="#m-atas">Atas</a></li><li><a href="#m-bol">Boletim Descritivo</a></li><li><a href="#m-poema">Poema do ano</a></li><li><a href="#m-conselho">Conselho de classe</a></li><li><a href="#m-perfis">Perfil do aluno</a></li><li><a href="#m-relat">Relatórios</a></li><li><a href="#m-viv">Vivências</a></li><li><a href="#m-agenda">Calendário</a></li><li><a href="#m-tarefas">Tarefas e lembretes</a></li><li><a href="#m-curric">Currículo e BNCC</a></li><li><a href="#m-biblio">Biblioteca Waldorf</a></li><li><a href="#m-planej">Planejamento</a></li><li><a href="#m-pei">PEI – PDI — Plano Educacional Individualizado</a></li><li><a href="#m-reforco">Reforço escolar</a></li><li><a href="#m-combinados">Combinados da turma</a></li><li><a href="#m-acomp">Acompanhamento: contatos, entrevista e estudo de criança</a></li><li><a href="#m-comunic">Comunicados às famílias</a></li><li><a href="#m-repert">Repertório da turma</a></li><li><a href="#m-ano">Ano letivo: dias, festas e materiais</a></li><li><a href="#m-cadastros">Cadastros</a></li><li><a href="#m-atencao">Pontos de atenção</a></li><li><a href="#m-importar">Importar boletins anteriores</a></li><li><a href="#m-timbrado">Papel timbrado, exportar e enviar</a></li><li><a href="#m-copia">Salvar o arquivo</a></li><li><a href="#m-partilha">Partilha pedagógica</a></li><li><a href="#m-virada">Virada do ano letivo</a></li><li><a href="#m-seguranca">Segurança e LGPD</a></li><li><a href="#m-faq">Perguntas frequentes</a></li></ol>
 
 <h2 id="m-inicio">1. Primeiros passos</h2>
 <p>Abra o arquivo <i>Tecela.html</i> com dois cliques. Ele funciona em qualquer navegador atual (Chrome, Edge, Firefox, Safari), sem internet. Mantenha o <i>Tecela.html</i> sempre no mesmo lugar: o navegador associa os dados ao local de onde ele é aberto.</p>
@@ -4752,7 +4796,7 @@ const MANUAL_HTML = `
 <h2 id="m-menu">2. O menu, os atalhos e o Painel</h2>
 <p>O menu tem cinco grupos:</p>
 <ul><li><b>Dia a dia:</b> Painel, Anotações, Observação do período e Faltas.</li>
-<li><b>Documentos:</b> Boletins, Atas, Conselho de classe, Perfil do aluno, PEI, Acompanhamento e Relatórios.</li>
+<li><b>Documentos:</b> Boletins, Atas, Conselho de classe, Perfil do aluno, PEI – PDI, Acompanhamento e Relatórios.</li>
 <li><b>Planejar:</b> Planejamento, Repertório, Currículo e BNCC, Calendário e Tarefas.</li>
 <li><b>A turma:</b> Turma e alunos (com o horário semanal), Vivências, Reforço, Comunicados e Combinados.</li>
 <li><b>Ajustar:</b> Biblioteca, Cadastros, Papel timbrado, Ajustes e arquivo, Ajuda.</li></ul>
@@ -4761,7 +4805,7 @@ const MANUAL_HTML = `
 <p>No alto de todas as telas ficam o seletor da turma, o campo <b>Buscar…</b>, o <b>?</b> (ajuda daquela tela), <b>💾 Salvar</b> e <b>Sair</b>. Logo abaixo, uma linha discreta mostra se está tudo salvo neste aparelho e quando o arquivo foi salvo pela última vez; toque nela para entender a diferença (veja <a href="#m-copia">Salvar o arquivo</a>).</p>
 <h3>Atalhos que poupam trabalho</h3>
 <ul><li><b>✎ Anotar</b>, o botão vermelho no canto da tela: registra uma anotação sem sair de onde você está. Veja <a href="#m-anot">Anotações</a>.</li>
-<li><b>Buscar…:</b> digite uma palavra e tecle Enter. A Tecelã procura em crianças, anotações, atas, boletins, vivências, eventos, tarefas, conselhos, reforços, épocas do currículo, planejamentos, planos de época, combinados, PEIs e na Biblioteca, em todas as turmas, e também em contatos com as famílias e no repertório. Toque num resultado para abri-lo.</li>
+<li><b>Buscar…:</b> digite uma palavra e tecle Enter. A Tecelã procura em crianças, anotações, atas, boletins (inclusive nos textos da turma e na citação), vivências, eventos, tarefas, conselhos, reforços, épocas do currículo, planejamentos, planos de época, combinados, PEIs e na Biblioteca, em todas as turmas, e também em contatos com as famílias e no repertório. Toque num resultado para abri-lo.</li>
 <li><b>Teclado:</b> <b>Ctrl+S</b> (ou ⌘S) salva o arquivo; <b>Ctrl+K</b> vai para a busca; <b>Alt+N</b> abre a anotação rápida.</li>
 <li><b>Desfazer:</b> depois de lançar ou apagar uma anotação, ou de apagar um evento ou uma tarefa, aparece embaixo, por alguns segundos, o botão “Desfazer”.</li>
 <li><b>Sugestões:</b> a Tecelã sugere a seção e o critério das anotações, rascunhos para o boletim, níveis do perfil e a ata do conselho. Tudo pode ser mudado: a decisão é sempre sua.</li></ul>
@@ -4834,14 +4878,16 @@ const MANUAL_HTML = `
 
 <h2 id="m-bol">9. Boletim Descritivo</h2>
 <p>Em <b>Boletins</b> há quatro abas: Alunos e conferência, Textos da turma, Poema do ano e Seções do ano.</p>
-<ol><li><b>Seções do ano:</b> ligue, desligue, renomeie e reordene as seções da série. Cada série tem as suas.</li>
-<li><b>Textos da turma:</b> a citação, as assinaturas e, para cada seção, o texto que vale para toda a turma (ele entra no boletim de todas as crianças, antes do texto individual). O botão <b>✦ Rascunho da introdução</b> monta um começo com o número de crianças, as épocas e as vivências do ano; os trechos entre colchetes são para você completar.</li>
+<ol><li><b>Seções do ano:</b> ligue, desligue, renomeie e reordene as seções da série. Cada série tem as suas. Marque <b>Subtítulo</b> para que o título da seção apareça no boletim, em negrito, antes do texto; desmarcado, a seção entra só com o texto. Logo abaixo, a opção do <b>poema do ano</b> faz o título do poema aparecer como subtítulo, como as seções (desmarcada, ele fica centralizado, com “Poema” acima).</li>
+<li><b>Textos da turma:</b> a citação, as assinaturas e, para cada seção, o texto que vale para toda a turma (ele entra no boletim de todas as crianças, antes do texto individual). O botão <b>✦ Rascunho da introdução</b> monta um começo com o número de crianças, as épocas e as vivências do ano; os trechos entre colchetes são para você completar. Em <b>Aparência do texto</b>, ligue o <b>recuo na primeira linha dos parágrafos</b> (vale para o boletim inteiro, na tela, no PDF e no Word) e use <b>Visualizar os textos da turma</b> para ver como eles entram no boletim, já com o nome de uma criança nos marcadores.</li>
 <li><b>Boletim de cada criança:</b> na aba “Alunos e conferência”, toque no nome. Cada seção mostra, em cinza, o texto da turma e, abaixo, o campo do texto individual.</li></ol>
 <h3>De onde vem o texto individual</h3>
 <p>São duas fontes diferentes, com botões diferentes:</p>
 <ul><li><b>Trazer novas anotações:</b> copia para cada seção as <b>anotações com estrela</b> (e os trechos marcados nas atas) daquela seção. Elas já vêm na primeira vez que o boletim é aberto; o botão traz as que foram lançadas depois. O lápis ✎ ao lado do título da seção mostra todas as anotações daquela seção.</li>
 <li><b>◎ Rascunho da observação:</b> acrescenta ao fim do texto um parágrafo montado com as marcas da <a href="#m-obs">Observação do período</a> nos itens ligados àquela seção (por exemplo: “Ana Clara lê bem oralmente e reconta histórias com propriedade. Está em desenvolvimento: escreve com capricho e em letra legível.”). O botão só aparece nas seções que têm itens do roteiro ligados a elas; se a criança ainda não tiver marcas nesses itens, a Tecelã explica o que falta. “◎ Rascunho nas seções vazias” faz isso de uma vez, só onde ainda não há texto; na aba “Alunos e conferência”, o mesmo botão vale para a turma toda.</li></ul>
 <p>Os dois são pontos de partida: reescreva com o seu olhar.</p>
+<p><b>Correção ortográfica:</b> o navegador sublinha em vermelho as palavras que não reconhece. Clique com o botão direito na palavra sublinhada para ver sugestões. No celular, as sugestões aparecem no teclado.</p>
+<p><b>Escrevendo no fim de um campo:</b> enquanto você digita, o botão ✎ Anotar (e, no celular, a barra de baixo) sai da frente, e a página rola sozinha para manter à vista a linha que está sendo escrita.</p>
 <p><b>Conferência:</b> a grade mostra, para cada criança e cada seção, se há texto individual (●), só o texto da turma (○) ou nada (·), e se falta o poema.</p>
 <p><b>Conferir os textos</b> aponta frases iguais em três ou mais boletins, seções muito curtas ou muito longas em comparação com as da turma e palavras que podem estar no gênero errado (por exemplo, “ele” no boletim de uma menina). É só um apoio: o olhar final é seu.</p>
 <p><b>Finalizar</b> trava o boletim, como nas atas. <b>✓ Finalizar os boletins prontos</b> finaliza de uma vez todos os boletins completos: antes, a Tecelã mostra quais serão finalizados e quais ficam de fora por estarem incompletos (seção vazia ou sem poema). “Exportar todos num só documento” gera um único PDF ou Word da turma; “Um arquivo por criança (.zip)” gera um boletim por criança, em Word ou em página para imprimir, prontos para cada família. Pontos de atenção e anotações sigilosas nunca entram no boletim.</p>
@@ -4943,7 +4989,8 @@ const MANUAL_HTML = `
 <li><b>Imprimir ou exportar o horário:</b> o horário sai numa tabela, com os dias nas colunas e as aulas nas linhas (horário, matéria e sigla), a legenda das siglas e as observações. A lista das matérias, com quem dá cada uma e o nome do professor, sai em <b>folha separada</b>, mesmo quando se imprime tudo junto. Também sai em planilha.</li>
 <li>As horas de cada dia do horário semanal são usadas na contagem da carga horária (veja <a href="#m-ano">Ano letivo</a>).</li></ul>
 
-<h2 id="m-pei">20. PEI — Plano Educacional Individualizado</h2>
+<h2 id="m-pei">20. PEI – PDI — Plano Educacional Individualizado</h2>
+<p class="dica">No menu, aparece como “PEI – PDI”: PEI (Plano Educacional Individualizado) e PDI (Plano de Desenvolvimento Individual) são nomes usados para o mesmo tipo de plano.</p>
 <p>Para a criança que precisa de adaptações. Na lista, “Criar” monta o rascunho com o que já está registrado: quem é a criança (idade, setênio e o último perfil), necessidades e acompanhamentos (pontos de atenção, NEE, acompanhamento externo), o que a observação do período mostra, o <b>conteúdo curricular planejado</b> (uma tabela com cada componente, o que está planejado para a classe e o que está planejado para a criança, que começa como “Acompanha o conteúdo da classe”), recursos didáticos e adaptações, objetivos, reforço escolar e acompanhamento e revisão. No cabeçalho: tutores, componentes, professores e vigência.</p>
 <p>O PEI é <b>sigiloso</b>: fica só no aparelho e no arquivo e só sai quando você exporta. Depois de criado, as adaptações aparecem como lembrete no boletim e no plano de época, e o PEI aparece como sinal no pré-conselho (o texto, só se você incluir os sigilosos). Como nos outros documentos, há ↻ por seção, versões e exportação.</p>
 
