@@ -339,11 +339,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
    Padrões de criptografia e de arquivos adaptados do PazNoBolso 0.9.
    ========================================================================== */
 'use strict';
-const VERSAO = '1.8';
+const VERSAO = '1.8.1';
 /* anos visíveis nas listas: o 9º ano fica oculto por padrão (na tradição Waldorf ele já é o início do ensino médio);
    uma turma de 9º ano que já exista continua aparecendo */
 const seriesVisiveis = extra => { const r = [1, 2, 3, 4, 5, 6, 7, 8]; if (CFG.prefs.mostrar9 || (typeof D !== 'undefined' && D.turmas && D.turmas.some(t => t.serie === 9)) || extra === 9) r.push(9); return r; };
-const DATA_VERSAO = '15 de novembro de 2026';
+const DATA_VERSAO = '20 de novembro de 2026';
 const AUTORIA = 'Tecelã — criada por Márcio Willians Barreto de Andrade. Software livre como ferramenta de inclusão social e digital. Contra a pirataria: use, estude e compartilhe dentro da licença.';
 const SLOGAN = 'Fio a fio, tecendo as linhas da vida escolar';
 const AUTOR = 'Márcio Willians Barreto de Andrade';
@@ -377,7 +377,12 @@ function idadeEm(nasc, ref) {
 }
 const idadeTxt = m => m == null ? '—' : Math.floor(m / 12) + ' a ' + (m % 12) + ' m';
 function setenio(meses) { if (meses == null) return ''; const a = meses / 12; return a < 7 ? '1º setênio' : a < 14 ? '2º setênio' : a < 21 ? '3º setênio' : '—'; }
-function setP(o, p, v) { const ks = p.split('.'); let a = o; ks.slice(0, -1).forEach(k => { if (a[k] == null || typeof a[k] !== 'object') a[k] = {}; a = a[k]; }); a[ks[ks.length - 1]] = v; }
+/* lista guardada por engano como objeto ({ "0": 3, "4": 1 }) volta a ser lista */
+function comoLista(x) { if (Array.isArray(x)) return x; const r = []; if (x && typeof x === 'object') Object.keys(x).forEach(k => { if (/^\d+$/.test(k)) r[Number(k)] = x[k]; }); return r; }
+/* grava pelo caminho "a.b.0": quando a próxima chave é um número, o que se cria é uma lista, não um objeto */
+function setP(o, p, v) { const ks = p.split('.'); let a = o; ks.slice(0, -1).forEach((k, i) => { const num = /^\d+$/.test(ks[i + 1]); if (a[k] == null || typeof a[k] !== 'object') a[k] = num ? [] : {}; else if (num && !Array.isArray(a[k])) a[k] = comoLista(a[k]); a = a[k]; }); a[ks[ks.length - 1]] = v; }
+/* conserto de dados gravados por versões anteriores: dias letivos e faltas são listas */
+function consertarListas(s, r) { if (s === 'turmas' && r.diasLetivos != null && !Array.isArray(r.diasLetivos)) r.diasLetivos = comoLista(r.diasLetivos); if (s === 'matriculas' && r.faltas != null && !Array.isArray(r.faltas)) r.faltas = comoLista(r.faltas); }
 async function sha256(txt) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt)); return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join(''); }
 
 /* ---------- criptografia (senha opcional) ---------- */
@@ -434,7 +439,7 @@ async function carregarTudo() {
   zerarMemoria();
   for (const s of DADOS) { const rs = await idbTudo(s); for (const r of rs) { const v = await desempacotarRegistro(r); D[s].push(v); IX[s][v.id] = v; } }
 }
-function indexar(s) { IX[s] = {}; D[s].forEach(r => IX[s][r.id] = r); }
+function indexar(s) { IX[s] = {}; D[s].forEach(r => { consertarListas(s, r); IX[s][r.id] = r; }); }
 
 /* gravação: memória na hora, disco logo depois (fila por registro) */
 function marcarPendente() { SE.salvoAs = new Date(); const era = CFG.prefs.pendente; if (!CFG.prefs.pendente && !SE.demo && !SE.memoria) { CFG.prefs.pendente = true; gravarConfig('prefs'); } else CFG.prefs.pendente = true; if (SE.app && typeof atualizarEstadoSalvo === 'function') { clearTimeout(SE.tEstado); SE.tEstado = setTimeout(atualizarEstadoSalvo, era ? 300 : 0); } }
@@ -2870,7 +2875,7 @@ const REL = {
     return { doc: docBase('Lugares_por_temperamento', 'Disposição dos lugares por temperamento — ' + rotuloTurma(t), b) };
   },
   freq(t) {
-    const per = CFG.prefs.periodos || [], dl = t.diasLetivos || [], al = alunosDaTurma(t.id), ult = per.reduce((u, _, i) => al.some(a => { const v = ((matricula(t.id, a.id) || {}).faltas || [])[i]; return v !== null && v !== undefined && v !== ''; }) ? i : u, -1), tot = dl.slice(0, ult + 1).reduce((s, x) => s + (Number(x) || 0), 0);
+    const per = CFG.prefs.periodos || [], dl = comoLista(t.diasLetivos), al = alunosDaTurma(t.id), ult = per.reduce((u, _, i) => al.some(a => { const v = ((matricula(t.id, a.id) || {}).faltas || [])[i]; return v !== null && v !== undefined && v !== ''; }) ? i : u, -1), tot = dl.slice(0, ult + 1).reduce((s, x) => s + (Number(x) || 0), 0);
     const ctr = '<div data-rec="turmas:' + t.id + '"><p class="dica">Dias letivos de cada período (para calcular o percentual de faltas):</p><div class="grade" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">' + per.map((p, i) => campo(e(p), inp('diasLetivos.' + i, dl[i], 'number', 'min="0" data-rr="1"'))).join('') + '</div></div>';
     const linhas = al.map(a => { const f = (matricula(t.id, a.id) || {}).faltas || [], soma = f.reduce((s, x) => s + (Number(x) || 0), 0), pc = tot ? 100 * soma / tot : null; return [a.nome].concat(per.map((_, i) => String(f[i] == null ? '' : f[i]))).concat([String(soma), pc == null ? '—' : pc.toFixed(1) + '%' + (pc >= 25 ? ' ⚠ acima do limite' : pc >= 15 ? ' · atenção' : '')]); });
     const b = [{ t: 'p', txt: tot ? 'Dias letivos considerados: ' + tot + ' (até o ' + per[ult] + ', último período com faltas lançadas). A LDB exige frequência mínima de 75%, ou seja, no máximo 25% de faltas.' : 'Informe os dias letivos de cada período para calcular os percentuais.' }, { t: 'tabela', cab: ['Aluno'].concat(per).concat(['Total', '% de faltas']), linhas }];
@@ -4151,16 +4156,16 @@ A.anotar = async d => {
 /* ---------- FALTAS: todas as crianças e períodos numa grade ---------- */
 T.faltas = () => {
   const t = turmaAtual(); if (!t) return '<h1>Faltas</h1>' + vazio('Cadastre uma turma primeiro.');
-  const al = alunosDaTurma(t.id), per = CFG.prefs.periodos || [], dl = t.diasLetivos || []; if (!al.length) return '<h1>Faltas</h1>' + vazio('Cadastre os alunos da turma.');
+  const al = alunosDaTurma(t.id), per = CFG.prefs.periodos || [], dl = comoLista(t.diasLetivos); if (!al.length) return '<h1>Faltas</h1>' + vazio('Cadastre os alunos da turma.');
   let h = '<h1>Faltas</h1><p class="dica">' + e(rotuloTurma(t)) + ' · digite o total de faltas de cada período. Use Tab ou Enter para ir à próxima célula. Os períodos se ajustam em <a href="#" data-a="ir" data-t="ajustes">Ajustes</a>.</p>';
   h += '<div class="cartao rolagem"><table class="tabela" id="gradeFaltas"><tr><th>Criança</th>' + per.map(p => '<th>' + e(p) + '</th>').join('') + '<th>Total</th><th>%</th></tr>';
   h += '<tr data-rec="turmas:' + t.id + '"><td class="dica">Dias letivos</td>' + per.map((_, i) => '<td>' + inp('diasLetivos.' + i, dl[i], 'number', 'min="0" style="width:5rem" data-i="faltaTot"') + '</td>').join('') + '<td></td><td></td></tr>';
   h += al.map(a => { const m = matricula(t.id, a.id); if (!m) return ''; const f = m.faltas || []; return '<tr data-rec="matriculas:' + m.id + '"><td>' + e(a.nome) + '</td>' + per.map((_, i) => '<td>' + inp('faltas.' + i, f[i], 'number', 'min="0" style="width:5rem" data-i="faltaTot" data-al="' + a.id + '"') + '</td>').join('') + '<td class="ft" data-al="' + a.id + '">' + somaFaltas(f) + '</td><td class="fp" data-al="' + a.id + '">' + pctFaltas(t, f) + '</td></tr>'; }).join('');
   return h + '</table></div><p class="dica">A LDB exige frequência mínima de 75%: acima de 25% de faltas, a célula fica vermelha; acima de 15%, amarela. O relatório completo está em Relatórios → Frequência.</p>';
 };
-const somaFaltas = f => (f || []).reduce((s, x) => s + (Number(x) || 0), 0);
+const somaFaltas = f => comoLista(f).reduce((s, x) => s + (Number(x) || 0), 0);
 function pctFaltas(t, f, cru) {
-  const dl = t.diasLetivos || [], ult = (f || []).reduce((u, v, i) => v !== null && v !== undefined && v !== '' ? i : u, -1), tot = dl.slice(0, ult + 1).reduce((s, x) => s + (Number(x) || 0), 0);
+  const dl = comoLista(t.diasLetivos); f = comoLista(f); const ult = f.reduce((u, v, i) => v !== null && v !== undefined && v !== '' ? i : u, -1), tot = dl.slice(0, ult + 1).reduce((s, x) => s + (Number(x) || 0), 0);
   const p = tot ? 100 * somaFaltas(f) / tot : null; if (cru) return p; return p == null ? '—' : '<span class="flag ' + (p > 25 ? '' : p > 15 ? 'am' : 'az') + '">' + p.toFixed(1).replace('.', ',') + '%</span>';
 }
 C_.faltaTot = () => setTimeout(() => { const t = turmaAtual(); $$('#gradeFaltas td.ft').forEach(td => { const m = matricula(t.id, td.dataset.al); td.textContent = somaFaltas(m.faltas); $('#gradeFaltas td.fp[data-al="' + td.dataset.al + '"]').innerHTML = pctFaltas(t, m.faltas); }); }, 20);
@@ -4299,7 +4304,13 @@ C_.minHoras = async el => { const v = Math.round(Number(el.value)); if (!(v > 0)
 C_.mostrar9 = async el => { await prefs({ mostrar9: el.checked }); render(); aviso(el.checked ? 'O 9º ano aparece nas listas.' : 'O 9º ano está oculto.'); };
 C_.copiaNova = async el => { await prefs({ copiaNova: el.checked }); aviso(el.checked ? 'Cada “Salvar” criará um arquivo novo, com data e hora.' : 'Ajuste salvo.'); };
 C_.inativ = async el => { await prefs({ inativ: Number(el.value) }); tocar(true); aviso('Ajuste salvo.'); };
-C_.periodos = async el => { await prefs({ periodos: el.value.split(',').map(s => s.trim()).filter(Boolean) }); aviso('Períodos salvos.'); };
+C_.periodos = async el => {
+  const antes = (CFG.prefs.periodos || []).slice(), novos = el.value.split(',').map(s => s.trim()).filter(Boolean);
+  await prefs({ periodos: novos }); aviso('Períodos salvos.');
+  /* mudou a divisão (ex.: de bimestre para mensal) e já há números digitados: avisa que eles ficam na mesma posição */
+  const tem = D.matriculas.some(m => comoLista(m.faltas).some(v => v !== null && v !== undefined && v !== '')) || D.turmas.some(t => comoLista(t.diasLetivos).some(v => v !== null && v !== undefined && v !== ''));
+  if (tem && antes.length && antes.join('|') !== novos.join('|')) informar('Períodos das faltas alterados', '<p>As faltas e os dias letivos já digitados continuam na mesma posição: o que estava em “' + e(antes[0]) + '” passa a aparecer em “' + e(novos[0] || '') + '”, e assim por diante.</p><p>Confira os números na tela <b>Faltas</b> e em <b>Relatórios › Frequência</b>, e corrija o que for preciso.</p>');
+};
 C_.periodoObs = async el => { await prefs({ periodoObs: el.value }); aviso('Períodos da observação: ' + el.options[el.selectedIndex].text.toLowerCase() + '.'); };
 A.guardarNovo = () => guardar(true);
 C_.bnccComputacao = async el => { await prefs({ bnccComputacao: el.checked }); aplicarComputacao(); aviso(el.checked ? 'A Computação foi incluída na BNCC.' : 'A Computação saiu da consulta e da comparação. As ligações já feitas continuam guardadas.'); };
@@ -4864,6 +4875,7 @@ const MANUAL_HTML = `
 
 <h2 id="m-faltas">7. Faltas</h2>
 <p>Uma grade com todas as crianças nas linhas e os períodos nas colunas. Digite o total de faltas de cada período; Enter leva à próxima célula. Na primeira linha, digite os <b>dias letivos</b> de cada período: com eles a Tecelã calcula o percentual de faltas. Acima de 15% o percentual fica amarelo; acima de 25% (o limite da LDB), vermelho. Os nomes dos períodos das faltas se ajustam em Ajustes. O relatório completo está em Relatórios → Frequência.</p>
+<p><b>Mudou a divisão dos períodos</b> (por exemplo, de bimestre para mensal) depois de já ter digitado faltas ou dias letivos? Os números continuam na mesma posição: o que estava no 1º bimestre passa a aparecer no primeiro período novo, e assim por diante. A Tecelã avisa ao salvar a mudança; confira e corrija na tela Faltas.</p>
 
 <h2 id="m-atas">8. Atas</h2>
 <ol><li>Toque em <b>+ Nova ata</b> e escolha o tipo: reunião com as famílias, do colegiado, geral ou conselho de classe (e o subtipo, quando houver). Com “Aproveitar a última ata do mesmo tipo” marcado, os participantes, o local, o horário e a pauta vêm da última reunião desse tipo.</li>
