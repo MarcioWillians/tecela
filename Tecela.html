@@ -280,6 +280,16 @@ mark.pt-susp{background:#ffe866;color:#3a3000;border-radius:3px;padding:0 .15rem
 /* digitando: o botão Anotar e a barra do celular saem da frente do texto */
 body.digitando .fab{display:none!important}
 @media (max-width:900px){ body.digitando .barra-movel{display:none!important} }
+/* tabelas largas: rolagem própria, com a linha de títulos no alto e a primeira coluna (nomes) sempre à vista */
+.grade-fixa{overflow:auto;max-height:max(16rem, calc(100vh - 16rem));padding:0!important}
+.grade-fixa table{border-collapse:separate;border-spacing:0}
+.grade-fixa th{position:sticky;top:0;z-index:2;background:var(--folha)}
+.grade-fixa tr>:first-child{position:sticky;left:0;z-index:1;background:var(--folha);box-shadow:1px 0 0 var(--linha)}
+.grade-fixa tr:first-child>:first-child{z-index:3}
+.previa .grade-fixa th,.previa .grade-fixa tr>:first-child,.doc .grade-fixa th,.doc .grade-fixa tr>:first-child{background:#fff}
+@media print{.grade-fixa{max-height:none!important;overflow:visible!important}.grade-fixa th,.grade-fixa tr>:first-child{position:static!important;box-shadow:none!important}}
+.chamada-data{display:inline-flex;align-items:center;gap:.25rem}
+.chamada-data input[type=date]{width:auto;padding:.2rem .4rem}
 
 </style>
 <style id="pg"></style>
@@ -339,7 +349,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
    Padrões de criptografia e de arquivos adaptados do PazNoBolso 0.9.
    ========================================================================== */
 'use strict';
-const VERSAO = '1.8.1';
+const VERSAO = '1.9';
 /* anos visíveis nas listas: o 9º ano fica oculto por padrão (na tradição Waldorf ele já é o início do ensino médio);
    uma turma de 9º ano que já exista continua aparecendo */
 const seriesVisiveis = extra => { const r = [1, 2, 3, 4, 5, 6, 7, 8]; if (CFG.prefs.mostrar9 || (typeof D !== 'undefined' && D.turmas && D.turmas.some(t => t.serie === 9)) || extra === 9) r.push(9); return r; };
@@ -525,9 +535,12 @@ document.addEventListener('input', ev => { const el = ev.target.closest('[data-b
 function aoMudar(alvo, ev) { const el = alvo.closest('[data-b]'); if (el) vincular(el, true); const c = alvo.closest('[data-c]'); if (c && C_[c.dataset.c]) C_[c.dataset.c](c, ev); }
 document.addEventListener('focusin', ev => { if (ev.target.type === 'date') ev.target._foco = true; });
 document.addEventListener('focusout', ev => { if (ev.target.type === 'date') ev.target._foco = false; });
+document.addEventListener('keydown', ev => { if (ev.target.type === 'date') ev.target._tecla = Date.now(); });
 document.addEventListener('change', ev => {
   const t = ev.target;
-  if (t.type === 'date' && t._foco && (t.dataset.rr || t.dataset.c)) {
+  /* data-imediato: quando a data vem do calendário do navegador (sem digitação), aplica já, para o toque seguinte
+     não se perder; digitando, espera sair do campo, como nos demais */
+  if (t.type === 'date' && t._foco && (t.dataset.rr || t.dataset.c) && !(t.dataset.imediato && Date.now() - (t._tecla || 0) > 900 && Number(t.value.slice(0, 4)) >= 1900)) {
     const el = t.closest('[data-b]'); if (el) vincular(el, false);
     if (!t._adiado) { t._adiado = true; t.addEventListener('blur', () => { t._adiado = false; if (t.isConnected) aoMudar(t, ev); }, { once: true }); }
     return;
@@ -976,7 +989,7 @@ function htmlBloco(x) {
     case 'pares': return '<table style="width:100%;border-collapse:collapse;margin-bottom:1em">' + x.linhas.map(l => '<tr><td style="padding:2px 0">' + e(l[0]) + '</td><td style="text-align:right;padding:2px 0">' + e(l[1]) + '</td></tr>').join('') + '</table>';
     case 'poema': return '<div style="text-align:center;margin-bottom:1em;font-family:' + e(pilhaFonte(fonteDoc('poema'))) + (x.grande ? ';font-size:1.25em;line-height:1.6' : '') + '">' + x.estrofes.map(es => '<p style="text-align:center;margin:0 0 .8em">' + es.map(e).join('<br>') + '</p>').join('') + '</div>';
     case 'lista': return '<ul>' + x.itens.map(i => '<li>' + e(i) + '</li>').join('') + '</ul>';
-    case 'tabela': return '<table style="width:100%;border-collapse:collapse;margin:.5em 0 1em;font-size:.92em">' + (x.cab ? '<tr>' + x.cab.map(c => '<th style="border-bottom:1px solid #888;text-align:left;padding:3px 4px">' + e(c) + '</th>').join('') + '</tr>' : '') + x.linhas.map(l => '<tr>' + l.map(c => '<td style="border-bottom:1px solid #ddd;padding:3px 4px;vertical-align:top">' + e(c) + '</td>').join('') + '</tr>').join('') + '</table>';
+    case 'tabela': return (x.fixa ? '<div class="grade-fixa">' : '') + '<table style="width:100%;border-collapse:collapse;margin:.5em 0 1em;font-size:.92em">' + (x.cab ? '<tr>' + x.cab.map(c => '<th style="border-bottom:1px solid #888;text-align:left;padding:3px 4px">' + e(c) + '</th>').join('') + '</tr>' : '') + x.linhas.map(l => '<tr>' + l.map(c => '<td style="border-bottom:1px solid #ddd;padding:3px 4px;vertical-align:top">' + e(c) + '</td>').join('') + '</tr>').join('') + '</table>' + (x.fixa ? '</div>' : '');
     case 'svg': return '<div class="grafico" style="margin:.4em 0 1em;break-inside:avoid">' + (x.rot ? '<p style="font-weight:bold;margin:0 0 .3em;text-align:left">' + e(x.rot) + '</p>' : '') + x.svg + '</div>';
     case 'assin': {
       let h = '<div class="assin" style="margin-top:2.2em;display:grid;grid-template-columns:1fr 1fr;gap:2.2em 2.5em">';
@@ -1950,8 +1963,8 @@ function abaBolAlunos(t) {
   const al = alunosDaTurma(t.id); if (!al.length) return vazio('Cadastre os alunos da turma.');
   const bols = boletinsAtuais(t.id), mod = modeloDaSerie(t.serie), ativas = mod.secoes.filter(s => s.ativa);
   let h = '<div class="linha"><button class="btn" data-a="exportarTodos">Exportar todos num só documento</button><button class="btn" data-a="finalizarTodos" title="Finaliza de uma vez os boletins completos">✓ Finalizar os boletins prontos</button><button class="btn" data-a="conferirBol" title="Frases repetidas, seções fora do tamanho e concordância de gênero">Conferir os textos</button><button class="btn" data-a="zipBoletins">Um arquivo por criança (.zip)</button><button class="btn" data-a="trazerTodos">Trazer novas anotações para todos</button><button class="btn" data-a="rascunhoTodos" title="Usa a última observação do período">◎ Rascunho da observação nas seções vazias</button></div>';
-  h += '<div class="cartao rolagem"><h3>Painel de conferência</h3><p class="dica"><span class="etq" style="background:var(--azulC)">texto individual</span> <span class="etq" style="background:var(--amarC)">só texto da turma</span> <span class="etq" style="background:var(--vermC)">vazio</span></p><table class="tabela conf"><tr><th style="text-align:left">Aluno</th>' + ativas.map(s => '<th title="' + e(s.titulo) + '" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:.72rem;text-transform:none;letter-spacing:0;height:7.5rem">' + e(s.titulo) + '</th>').join('') + '<th>Poema</th><th>Situação</th></tr>' +
-    al.map(a => { const b = bols[a.id]; const st = b ? statusBoletim(b).st : {}; return '<tr class="clic" data-a="abrirBol" data-al="' + a.id + '"><td style="text-align:left;white-space:nowrap"><b>' + e(a.nome) + '</b></td>' + ativas.map(s => { const v = st[s.key] || ((t.boletim || {}).textos || {})[s.key] ? (st[s.key] || 'r') : 'v'; return '<td class="' + v + '">' + (v === 'p' ? '●' : v === 'r' ? '○' : '·') + '</td>'; }).join('') + '<td class="' + (b && b.poemaTexto ? 'p' : 'v') + '">' + (b && b.poemaTexto ? '●' : '·') + '</td><td>' + (!b ? '<span class="etq">não iniciado</span>' : b.estado === 'finalizado' ? '<span class="etq fin">finalizado</span>' : '<span class="etq rasc">rascunho</span>') + '</td></tr>'; }).join('') + '</table></div>';
+  h += '<div class="cartao"><h3>Painel de conferência</h3><p class="dica"><span class="etq" style="background:var(--azulC)">texto individual</span> <span class="etq" style="background:var(--amarC)">só texto da turma</span> <span class="etq" style="background:var(--vermC)">vazio</span></p><div class="grade-fixa"><table class="tabela conf"><tr><th style="text-align:left">Aluno</th>' + ativas.map(s => '<th title="' + e(s.titulo) + '" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:.72rem;text-transform:none;letter-spacing:0;height:7.5rem">' + e(s.titulo) + '</th>').join('') + '<th>Poema</th><th>Situação</th></tr>' +
+    al.map(a => { const b = bols[a.id]; const st = b ? statusBoletim(b).st : {}; return '<tr class="clic" data-a="abrirBol" data-al="' + a.id + '"><td style="text-align:left;white-space:nowrap"><b>' + e(a.nome) + '</b></td>' + ativas.map(s => { const v = st[s.key] || ((t.boletim || {}).textos || {})[s.key] ? (st[s.key] || 'r') : 'v'; return '<td class="' + v + '">' + (v === 'p' ? '●' : v === 'r' ? '○' : '·') + '</td>'; }).join('') + '<td class="' + (b && b.poemaTexto ? 'p' : 'v') + '">' + (b && b.poemaTexto ? '●' : '·') + '</td><td>' + (!b ? '<span class="etq">não iniciado</span>' : b.estado === 'finalizado' ? '<span class="etq fin">finalizado</span>' : '<span class="etq rasc">rascunho</span>') + '</td></tr>'; }).join('') + '</table></div></div>';
   return h;
 }
 A.abrirBol = async d => { const t = turmaAtual(), b = await boletimDe(t, IX.alunos[d.al]); UI.sub = b.id; render(); window.scrollTo(0, 0); };
@@ -2878,7 +2891,7 @@ const REL = {
     const per = CFG.prefs.periodos || [], dl = comoLista(t.diasLetivos), al = alunosDaTurma(t.id), ult = per.reduce((u, _, i) => al.some(a => { const v = ((matricula(t.id, a.id) || {}).faltas || [])[i]; return v !== null && v !== undefined && v !== ''; }) ? i : u, -1), tot = dl.slice(0, ult + 1).reduce((s, x) => s + (Number(x) || 0), 0);
     const ctr = '<div data-rec="turmas:' + t.id + '"><p class="dica">Dias letivos de cada período (para calcular o percentual de faltas):</p><div class="grade" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">' + per.map((p, i) => campo(e(p), inp('diasLetivos.' + i, dl[i], 'number', 'min="0" data-rr="1"'))).join('') + '</div></div>';
     const linhas = al.map(a => { const f = (matricula(t.id, a.id) || {}).faltas || [], soma = f.reduce((s, x) => s + (Number(x) || 0), 0), pc = tot ? 100 * soma / tot : null; return [a.nome].concat(per.map((_, i) => String(f[i] == null ? '' : f[i]))).concat([String(soma), pc == null ? '—' : pc.toFixed(1) + '%' + (pc >= 25 ? ' ⚠ acima do limite' : pc >= 15 ? ' · atenção' : '')]); });
-    const b = [{ t: 'p', txt: tot ? 'Dias letivos considerados: ' + tot + ' (até o ' + per[ult] + ', último período com faltas lançadas). A LDB exige frequência mínima de 75%, ou seja, no máximo 25% de faltas.' : 'Informe os dias letivos de cada período para calcular os percentuais.' }, { t: 'tabela', cab: ['Aluno'].concat(per).concat(['Total', '% de faltas']), linhas }];
+    const b = [{ t: 'p', txt: tot ? 'Dias letivos considerados: ' + tot + ' (até o ' + per[ult] + ', último período com faltas lançadas). A LDB exige frequência mínima de 75%, ou seja, no máximo 25% de faltas.' : 'Informe os dias letivos de cada período para calcular os percentuais.' }, { t: 'tabela', cab: ['Aluno'].concat(per).concat(['Total', '% de faltas']), linhas, fixa: true }];
     return { controles: ctr, doc: docBase('Frequencia_' + t.ano, 'Frequência — ' + rotuloTurma(t), b), csv: { cab: ['Aluno'].concat(per).concat(['Total', '% de faltas']), linhas } };
   },
   ano(t) {
@@ -3706,19 +3719,47 @@ function periodosComDatas(t) {
 }
 const periodoDaData = (t, iso) => (periodosComDatas(t).find(p => iso >= p.ini && iso <= p.fim) || { i: -1 }).i;
 
-/* ---------- chamada rápida: um toque marca a falta de hoje, que vai para a frequência ---------- */
-function cartaoChamada(t) {
-  const h = hojeISO(); if (String(t.ano) !== h.slice(0, 4) || !ehLetivo(h)) return '';
-  const al = alunosDaTurma(t.id); if (!al.length) return '';
-  const faltam = al.filter(a => ((matricula(t.id, a.id) || {}).ausencias || []).includes(h));
-  return '<div class="cartao"><div class="linha" style="margin:0"><h3 style="margin:0">Chamada de hoje</h3><span class="dica">' + dataBR(h) + ' · toque em quem faltou</span><span class="espaco"></span><span class="dica">' + (faltam.length ? faltam.length + ' falta' + (faltam.length > 1 ? 's' : '') : 'todos presentes') + '</span></div><div class="chips chamada">' +
-    al.map(a => { const f = faltam.includes(a); return '<button class="chip-ch' + (f ? ' faltou' : '') + '" data-a="chamada" data-al="' + a.id + '" aria-pressed="' + f + '">' + e(primeiroNome(a)) + (f ? ' · faltou' : '') + '</button>'; }).join('') + '</div><p class="dica" style="margin:.4rem 0 0">A falta entra sozinha no total do período, em Faltas e no boletim.</p></div>';
+/* ---------- chamada: um toque marca a falta do dia escolhido (hoje ou um dia letivo anterior),
+   que vai para o total do período daquela data ---------- */
+const anoDe = t => String(t.ano);
+function ultimoLetivoAte(iso, t) { let d = iso, n = 0; while (n++ < 400 && d.slice(0, 4) === anoDe(t)) { if (ehLetivo(d)) return d; d = somaDias(d, -1); } return null; }
+function dataChamada(t) {
+  const h = hojeISO(), lim = anoDe(t) === h.slice(0, 4) ? h : anoDe(t) + '-12-31', x = UI.chamada && UI.chamada.t === t.id ? UI.chamada.d : null;
+  if (x && x <= lim && x.slice(0, 4) === anoDe(t)) return x;
+  return ehLetivo(lim) ? lim : (ultimoLetivoAte(lim, t) || lim);
 }
+const faltasPorDataNoPeriodo = (t, m, p) => (m.ausencias || []).filter(d => periodoDaData(t, d) === p).length;
+function cartaoChamada(t) {
+  const h = hojeISO(); if (anoDe(t) > h.slice(0, 4)) return '';
+  const al = alunosDaTurma(t.id); if (!al.length) return '';
+  const d = dataChamada(t), letivo = ehLetivo(d), hoje = d === h, lim = anoDe(t) === h.slice(0, 4) ? h : anoDe(t) + '-12-31';
+  const faltam = al.filter(a => ((matricula(t.id, a.id) || {}).ausencias || []).includes(d)), p = periodoDaData(t, d), per = (CFG.prefs.periodos || [])[p];
+  const motivo = letivo ? '' : (semAula(d) || (new Date(d + 'T12:00').getDay() === 0 ? 'domingo' : new Date(d + 'T12:00').getDay() === 6 ? 'sábado' : 'dia sem aula no calendário'));
+  /* total digitado à mão na tela Faltas, maior que as faltas marcadas por dia: a chamada soma a esse total */
+  const manual = p >= 0 ? al.filter(a => { const m = matricula(t.id, a.id) || {}; return (Number(comoLista(m.faltas)[p]) || 0) > faltasPorDataNoPeriodo(t, m, p); }) : [];
+  let x = '<div class="cartao" id="cartao-chamada"><div class="linha" style="margin:0"><h3 style="margin:0">' + (hoje ? 'Chamada de hoje' : 'Chamada de ' + dataBR(d)) + '</h3>' +
+    '<span class="chamada-data"><button class="icone-btn" data-a="chamadaDia" data-v="-1" title="Dia letivo anterior" aria-label="Dia letivo anterior">◀</button><input type="date" data-c="chamadaData" data-imediato="1" value="' + d + '" min="' + anoDe(t) + '-01-01" max="' + lim + '" aria-label="Data da chamada"><button class="icone-btn" data-a="chamadaDia" data-v="1" title="Próximo dia letivo" aria-label="Próximo dia letivo"' + (d >= lim ? ' disabled' : '') + '>▶</button>' + (hoje ? '' : '<button class="btn peq" data-a="chamadaHoje">Hoje</button>') + '</span>' +
+    '<span class="espaco"></span><span class="dica">' + diaSemana(d) + (per ? ' · ' + e(per) : '') + (letivo ? ' · ' + (faltam.length ? faltam.length + ' falta' + (faltam.length > 1 ? 's' : '') : 'todos presentes') : '') + '</span></div>';
+  if (!letivo) return x + '<p class="alerta" style="margin:.6rem 0 0">Sem aula neste dia (' + e(motivo) + '). Escolha um dia letivo.</p></div>';
+  x += '<div class="chips chamada">' + al.map(a => { const f = faltam.includes(a); return '<button class="chip-ch' + (f ? ' faltou' : '') + '" data-a="chamada" data-al="' + a.id + '" aria-pressed="' + f + '">' + e(primeiroNome(a)) + (f ? ' · faltou' : '') + '</button>'; }).join('') + '</div>';
+  x += '<p class="dica" style="margin:.4rem 0 0">Toque em quem faltou. A falta entra sozinha no total ' + (per ? 'de <b>' + e(per) + '</b>' : 'do período') + ', em Faltas e no boletim. Use ◀ ▶ ou a data para lançar a chamada de um dia anterior.</p>';
+  if (manual.length) x += '<p class="dica" style="margin:.3rem 0 0">⚠ Em ' + e(per || 'este período') + ', o total de faltas de ' + e(manual.map(primeiroNome).join(', ')) + ' foi digitado na tela Faltas. A chamada soma a esse total: confira para não contar a mesma falta duas vezes.</p>';
+  return x + '</div>';
+}
+const chamadaIr = (t, d) => { UI.chamada = { t: t.id, d }; render(); setTimeout(() => { const c = $('#cartao-chamada'); if (c) c.scrollIntoView({ block: 'nearest' }); }, 30); };
+A.chamadaDia = d => {
+  const t = turmaAtual(), atual = dataChamada(t), h = hojeISO(), lim = anoDe(t) === h.slice(0, 4) ? h : anoDe(t) + '-12-31', passo = Number(d.v);
+  let x = atual, n = 0; do { x = somaDias(x, passo); n++; } while (n < 60 && !ehLetivo(x) && x > anoDe(t) + '-01-01' && x < lim);
+  if (x > lim || x.slice(0, 4) !== anoDe(t)) return aviso(passo > 0 ? 'Não há dia letivo depois deste.' : 'Não há dia letivo antes deste no ano.');
+  chamadaIr(t, x);
+};
+A.chamadaHoje = () => { UI.chamada = null; render(); };
+C_.chamadaData = el => { if (!el.value) return; const t = turmaAtual(), h = hojeISO(); if (el.value > h) { aviso('A chamada não pode ser de um dia futuro.'); return chamadaIr(t, h); } if (el.value.slice(0, 4) !== anoDe(t)) { aviso('Escolha um dia do ano letivo de ' + t.ano + '.'); return render(); } chamadaIr(t, el.value); };
 A.chamada = async d => {
-  const t = turmaAtual(), h = hojeISO(), m = matricula(t.id, d.al); if (!m) return; const p = periodoDaData(t, h);
-  m.ausencias = m.ausencias || []; m.faltas = m.faltas || []; const i = m.ausencias.indexOf(h), a = IX.alunos[d.al];
+  const t = turmaAtual(), h = dataChamada(t), m = matricula(t.id, d.al); if (!m || !ehLetivo(h)) return; const p = periodoDaData(t, h);
+  m.ausencias = m.ausencias || []; m.faltas = comoLista(m.faltas); const i = m.ausencias.indexOf(h), a = IX.alunos[d.al];
   if (i < 0) { m.ausencias.push(h); if (p >= 0) m.faltas[p] = (Number(m.faltas[p]) || 0) + 1; } else { m.ausencias.splice(i, 1); if (p >= 0) m.faltas[p] = Math.max(0, (Number(m.faltas[p]) || 0) - 1); }
-  await salvar('matriculas', m); render(); aviso(primeiroNome(a) + (i < 0 ? ': falta marcada.' : ': presença.'));
+  await salvar('matriculas', m); render(); aviso(primeiroNome(a) + (i < 0 ? ': falta marcada em ' : ': presença em ') + dataBR(h) + '.');
 };
 
 /* ---------- roteiro para o professor substituto ---------- */
@@ -4158,7 +4199,7 @@ T.faltas = () => {
   const t = turmaAtual(); if (!t) return '<h1>Faltas</h1>' + vazio('Cadastre uma turma primeiro.');
   const al = alunosDaTurma(t.id), per = CFG.prefs.periodos || [], dl = comoLista(t.diasLetivos); if (!al.length) return '<h1>Faltas</h1>' + vazio('Cadastre os alunos da turma.');
   let h = '<h1>Faltas</h1><p class="dica">' + e(rotuloTurma(t)) + ' · digite o total de faltas de cada período. Use Tab ou Enter para ir à próxima célula. Os períodos se ajustam em <a href="#" data-a="ir" data-t="ajustes">Ajustes</a>.</p>';
-  h += '<div class="cartao rolagem"><table class="tabela" id="gradeFaltas"><tr><th>Criança</th>' + per.map(p => '<th>' + e(p) + '</th>').join('') + '<th>Total</th><th>%</th></tr>';
+  h += '<div class="cartao grade-fixa"><table class="tabela" id="gradeFaltas"><tr><th>Criança</th>' + per.map(p => '<th>' + e(p) + '</th>').join('') + '<th>Total</th><th>%</th></tr>';
   h += '<tr data-rec="turmas:' + t.id + '"><td class="dica">Dias letivos</td>' + per.map((_, i) => '<td>' + inp('diasLetivos.' + i, dl[i], 'number', 'min="0" style="width:5rem" data-i="faltaTot"') + '</td>').join('') + '<td></td><td></td></tr>';
   h += al.map(a => { const m = matricula(t.id, a.id); if (!m) return ''; const f = m.faltas || []; return '<tr data-rec="matriculas:' + m.id + '"><td>' + e(a.nome) + '</td>' + per.map((_, i) => '<td>' + inp('faltas.' + i, f[i], 'number', 'min="0" style="width:5rem" data-i="faltaTot" data-al="' + a.id + '"') + '</td>').join('') + '<td class="ft" data-al="' + a.id + '">' + somaFaltas(f) + '</td><td class="fp" data-al="' + a.id + '">' + pctFaltas(t, f) + '</td></tr>'; }).join('');
   return h + '</table></div><p class="dica">A LDB exige frequência mínima de 75%: acima de 25% de faltas, a célula fica vermelha; acima de 15%, amarela. O relatório completo está em Relatórios → Frequência.</p>';
@@ -4821,7 +4862,7 @@ const MANUAL_HTML = `
 <li><b>Desfazer:</b> depois de lançar ou apagar uma anotação, ou de apagar um evento ou uma tarefa, aparece embaixo, por alguns segundos, o botão “Desfazer”.</li>
 <li><b>Sugestões:</b> a Tecelã sugere a seção e o critério das anotações, rascunhos para o boletim, níveis do perfil e a ata do conselho. Tudo pode ser mudado: a decisão é sempre sua.</li></ul>
 <h3 id="m-painel">O Painel</h3>
-<p>Mostra a turma, o seu arquivo (e se há alterações não salvas no arquivo), os botões de lançamento rápido (Anotar, Observar, Faltas e <b>Roteiro para substituto</b>), a <b>chamada de hoje</b> (nos dias letivos: toque no nome de quem faltou e a falta entra sozinha no total do período, em Faltas e no boletim; toque de novo para desfazer), os <b>próximos dias</b> (eventos, reuniões, vivências, tarefas e aniversários das próximas duas semanas) e as <b>pendências</b>: crianças com poucas anotações no último mês, observação do período sem marcas, faltas de períodos já encerrados sem lançamento, crianças com mais de 20% de faltas, anotações marcadas para o conselho, atas em rascunho, boletins incompletos e perfis sem revisão há mais de um semestre. Cada pendência é um link para a tela onde resolvê-la. O Painel também avisa quem está chegando aos 9 anos (o Rubicão) ou aos 12.</p>
+<p>Mostra a turma, o seu arquivo (e se há alterações não salvas no arquivo), os botões de lançamento rápido (Anotar, Observar, Faltas e <b>Roteiro para substituto</b>), a <b>chamada</b> (toque no nome de quem faltou e a falta entra sozinha no total do período, em Faltas e no boletim; toque de novo para desfazer. Esqueceu um dia? Use ◀ ▶ ou escolha a data: a chamada vale para qualquer dia letivo do ano até hoje, e a falta entra no período daquela data. Dias sem aula aparecem bloqueados, com o motivo, e “Hoje” volta para a chamada do dia. Se o total de um período já tinha sido digitado à mão na tela Faltas, um aviso lembra de conferir, para não contar a mesma falta duas vezes), os <b>próximos dias</b> (eventos, reuniões, vivências, tarefas e aniversários das próximas duas semanas) e as <b>pendências</b>: crianças com poucas anotações no último mês, observação do período sem marcas, faltas de períodos já encerrados sem lançamento, crianças com mais de 20% de faltas, anotações marcadas para o conselho, atas em rascunho, boletins incompletos e perfis sem revisão há mais de um semestre. Cada pendência é um link para a tela onde resolvê-la. O Painel também avisa quem está chegando aos 9 anos (o Rubicão) ou aos 12.</p>
 
 <h2 id="m-turma">3. Escola, turma e crianças</h2>
 <p>Em <b>Turma e alunos</b> há cinco abas: Alunos, Escola e turmas, Horário semanal, Virada do ano e Arquivo.</p>
@@ -4875,6 +4916,8 @@ const MANUAL_HTML = `
 
 <h2 id="m-faltas">7. Faltas</h2>
 <p>Uma grade com todas as crianças nas linhas e os períodos nas colunas. Digite o total de faltas de cada período; Enter leva à próxima célula. Na primeira linha, digite os <b>dias letivos</b> de cada período: com eles a Tecelã calcula o percentual de faltas. Acima de 15% o percentual fica amarelo; acima de 25% (o limite da LDB), vermelho. Os nomes dos períodos das faltas se ajustam em Ajustes. O relatório completo está em Relatórios → Frequência.</p>
+<p><b>Tabela larga</b> (por exemplo, com os meses): ela tem rolagem própria, com as duas barras sempre à vista. A linha dos períodos fica fixa no alto e a coluna dos nomes fica fixa à esquerda. No computador, <b>Shift + rodinha do mouse</b> rola a tabela para o lado. O mesmo vale para Relatórios → Frequência e para o painel de conferência dos Boletins.</p>
+<p><b>Falta de um dia específico:</b> para lançar a falta de um dia, inclusive de dias anteriores, use a <b>chamada</b> do Painel; aqui ficam os totais de cada período.</p>
 <p><b>Mudou a divisão dos períodos</b> (por exemplo, de bimestre para mensal) depois de já ter digitado faltas ou dias letivos? Os números continuam na mesma posição: o que estava no 1º bimestre passa a aparecer no primeiro período novo, e assim por diante. A Tecelã avisa ao salvar a mudança; confira e corrija na tela Faltas.</p>
 
 <h2 id="m-atas">8. Atas</h2>
