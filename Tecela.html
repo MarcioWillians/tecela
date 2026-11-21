@@ -290,6 +290,35 @@ body.digitando .fab{display:none!important}
 @media print{.grade-fixa{max-height:none!important;overflow:visible!important}.grade-fixa th,.grade-fixa tr>:first-child{position:static!important;box-shadow:none!important}}
 .chamada-data{display:inline-flex;align-items:center;gap:.25rem}
 .chamada-data input[type=date]{width:auto;padding:.2rem .4rem}
+/* dias letivos e reuniões: grade do mês */
+.cal-mes{width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed}
+.cal-mes th{font-size:.75rem;color:var(--tinta2);text-align:center;font-weight:700}
+.cal-mes td{border-radius:8px;vertical-align:top;padding:.3rem .35rem;height:3.2rem;font-size:.9rem}
+.cal-mes td.vazio{background:transparent}
+.cal-mes td.clic{cursor:pointer;outline-offset:2px}
+.cal-mes td.clic:hover,.cal-mes td.clic:focus-visible{outline:2px solid var(--azul,#2F6AA8)}
+.dia-let.st-letivo{background:#D7E8F6}.dia-let.st-letivoTurma{background:#C9E6C6}
+.dia-let.st-retirado,.dia-let.st-retiradoTurma{background:#F8E2A8;text-decoration:line-through}
+.dia-let.st-feriado{background:#F6D2CB}.dia-let.st-fds{background:#EFECE4;color:#A39E92}.dia-let.st-fora{background:#F7F5EF;color:#B8B3A6}
+.dia-reu{background:var(--folha);border:1px solid var(--linha);height:4.6rem!important}
+.dia-reu.desab{background:#EFECE4;color:#A39E92;border-color:transparent}
+.dia-reu.indisp{background:#F8E2A8}
+.dia-reu.sel{outline:3px solid var(--azul,#2F6AA8)}
+.reu-chip{font-size:.7rem;line-height:1.2;margin-top:.15rem;padding:.05rem .25rem;border-radius:4px;background:var(--azulC);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reu-chip.sit-realizada{background:#C9E6C6}.reu-chip.sit-cancelada{background:#EEE;text-decoration:line-through}.reu-chip.sit-remarcada{background:#F8E2A8}
+.legenda-let{display:flex;flex-wrap:wrap;gap:.4rem 1rem;font-size:.8rem;color:var(--tinta2);margin:.6rem 0 0}
+.legenda-let i,.cal-ano-leg i{display:inline-block;width:.9rem;height:.9rem;border-radius:3px;margin-right:.3rem;vertical-align:-2px}
+.meses-let{display:flex;flex-wrap:wrap;gap:.3rem .9rem;margin-top:.4rem;font-size:.9rem}
+.faixa-let input[type=date]{width:auto}
+td.dl-calc{color:var(--tinta2);font-weight:700}
+/* calendário anual (relatório e impressão) */
+.cal-ano{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:.4em 0}
+.cal-ano-mes table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.5pt}
+.cal-ano-mes th{font-size:7.5pt;color:#666;font-weight:600;text-align:center}
+.cal-ano-mes td{text-align:center;padding:1px 0;border:1px solid #fff}
+.cal-ano-tit{font-weight:700;font-size:9.5pt;margin-bottom:2px}.cal-ano-tit span{font-weight:400;color:#666;font-size:8pt}
+.cal-ano-leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:8.5pt;color:#555}
+@media (max-width:700px){.cal-ano{grid-template-columns:repeat(2,1fr)}.cal-mes td{height:2.6rem;font-size:.8rem;padding:.2rem}}
 
 </style>
 <style id="pg"></style>
@@ -349,11 +378,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
    Padrões de criptografia e de arquivos adaptados do PazNoBolso 0.9.
    ========================================================================== */
 'use strict';
-const VERSAO = '1.9';
+const VERSAO = '1.10';
 /* anos visíveis nas listas: o 9º ano fica oculto por padrão (na tradição Waldorf ele já é o início do ensino médio);
    uma turma de 9º ano que já exista continua aparecendo */
 const seriesVisiveis = extra => { const r = [1, 2, 3, 4, 5, 6, 7, 8]; if (CFG.prefs.mostrar9 || (typeof D !== 'undefined' && D.turmas && D.turmas.some(t => t.serie === 9)) || extra === 9) r.push(9); return r; };
-const DATA_VERSAO = '20 de novembro de 2026';
+const DATA_VERSAO = '21 de novembro de 2026';
 const AUTORIA = 'Tecelã — criada por Márcio Willians Barreto de Andrade. Software livre como ferramenta de inclusão social e digital. Contra a pirataria: use, estude e compartilhe dentro da licença.';
 const SLOGAN = 'Fio a fio, tecendo as linhas da vida escolar';
 const AUTOR = 'Márcio Willians Barreto de Andrade';
@@ -603,7 +632,7 @@ async function travar() { if (!SE.dk) return; await descarregarFila(); zerarMemo
 /* ---------- cópia de segurança ---------- */
 async function pacoteCopia() {
   await descarregarFila();
-  const dados = { config: { escola: CFG.escola, prefs: { periodos: CFG.prefs.periodos, biblio: CFG.prefs.biblio, prazoEgressos: CFG.prefs.prazoEgressos, ataFormato: CFG.prefs.ataFormato, periodoObs: CFG.prefs.periodoObs, mig12: CFG.prefs.mig12, mig13: CFG.prefs.mig13, bnccComputacao: CFG.prefs.bnccComputacao, fonteTexto: CFG.prefs.fonteTexto, fonteTitulo: CFG.prefs.fonteTitulo, fontePoema: CFG.prefs.fontePoema, reforcoSaida: CFG.prefs.reforcoSaida, bilheteReforco: CFG.prefs.bilheteReforco, mig15: CFG.prefs.mig15, mostrar9: CFG.prefs.mostrar9, mig16: CFG.prefs.mig16, minDias: CFG.prefs.minDias, minHoras: CFG.prefs.minHoras, horasDia: CFG.prefs.horasDia, festas: CFG.prefs.festas } } };
+  const dados = { config: { escola: CFG.escola, prefs: { periodos: CFG.prefs.periodos, biblio: CFG.prefs.biblio, prazoEgressos: CFG.prefs.prazoEgressos, ataFormato: CFG.prefs.ataFormato, periodoObs: CFG.prefs.periodoObs, mig12: CFG.prefs.mig12, mig13: CFG.prefs.mig13, bnccComputacao: CFG.prefs.bnccComputacao, fonteTexto: CFG.prefs.fonteTexto, fonteTitulo: CFG.prefs.fonteTitulo, fontePoema: CFG.prefs.fontePoema, reforcoSaida: CFG.prefs.reforcoSaida, bilheteReforco: CFG.prefs.bilheteReforco, mig15: CFG.prefs.mig15, mostrar9: CFG.prefs.mostrar9, mig16: CFG.prefs.mig16, minDias: CFG.prefs.minDias, minHoras: CFG.prefs.minHoras, horasDia: CFG.prefs.horasDia, festas: CFG.prefs.festas, letivos: CFG.prefs.letivos } } };
   DADOS.forEach(s => dados[s] = D[s]);
   const base = { app: 'Tecela', formato: 1, versao: VERSAO, guardado: new Date().toISOString() };
   if (!SE.dk) return JSON.stringify(Object.assign(base, { dados }));
@@ -989,6 +1018,8 @@ function htmlBloco(x) {
     case 'pares': return '<table style="width:100%;border-collapse:collapse;margin-bottom:1em">' + x.linhas.map(l => '<tr><td style="padding:2px 0">' + e(l[0]) + '</td><td style="text-align:right;padding:2px 0">' + e(l[1]) + '</td></tr>').join('') + '</table>';
     case 'poema': return '<div style="text-align:center;margin-bottom:1em;font-family:' + e(pilhaFonte(fonteDoc('poema'))) + (x.grande ? ';font-size:1.25em;line-height:1.6' : '') + '">' + x.estrofes.map(es => '<p style="text-align:center;margin:0 0 .8em">' + es.map(e).join('<br>') + '</p>').join('') + '</div>';
     case 'lista': return '<ul>' + x.itens.map(i => '<li>' + e(i) + '</li>').join('') + '</ul>';
+    case 'calAno': return htmlCalAno(x);
+    case 'calMes': return htmlCalMes(x);
     case 'tabela': return (x.fixa ? '<div class="grade-fixa">' : '') + '<table style="width:100%;border-collapse:collapse;margin:.5em 0 1em;font-size:.92em">' + (x.cab ? '<tr>' + x.cab.map(c => '<th style="border-bottom:1px solid #888;text-align:left;padding:3px 4px">' + e(c) + '</th>').join('') + '</tr>' : '') + x.linhas.map(l => '<tr>' + l.map(c => '<td style="border-bottom:1px solid #ddd;padding:3px 4px;vertical-align:top">' + e(c) + '</td>').join('') + '</tr>').join('') + '</table>' + (x.fixa ? '</div>' : '');
     case 'svg': return '<div class="grafico" style="margin:.4em 0 1em;break-inside:avoid">' + (x.rot ? '<p style="font-weight:bold;margin:0 0 .3em;text-align:left">' + e(x.rot) + '</p>' : '') + x.svg + '</div>';
     case 'assin': {
@@ -1032,7 +1063,7 @@ async function docxBlob(doc) {
   const J = X.AlignmentType.JUSTIFIED, CE = X.AlignmentType.CENTER, RI = X.AlignmentType.RIGHT;
   const semBorda = { top: { style: X.BorderStyle.NONE }, bottom: { style: X.BorderStyle.NONE }, left: { style: X.BorderStyle.NONE }, right: { style: X.BorderStyle.NONE } };
   const filhos = [];
-  for (const x of doc.blocos) {
+  for (const x of doc.blocos.flatMap(blocosParaWord)) {
     if (x.t === 'tit') filhos.push(par(x.txt, { alignment: CE, spacing: { before: 120, after: 240 } }, { bold: true, size: 26, font: FT }));
     else if (x.t === 'centro') x.linhas.forEach((l, i) => filhos.push(par(l, { alignment: CE, spacing: { before: i === 0 && x.espaco ? 280 : 0, after: i === x.linhas.length - 1 ? 240 : 0, line: 300 } }, { italics: !!x.it, bold: !!x.negrito, size: x.peq ? 21 : 24 })));
     else if (x.t === 'p') filhos.push(par(x.txt, Object.assign({ alignment: J }, x.recuo ? { indent: { firstLine: 709 } } : {})));
@@ -1933,9 +1964,40 @@ A.remMarca = async d => { const m = IX.marcacoes[d.id]; if (!(await confirmar('R
 function boletinsAtuais(tid) {
   const r = {}; D.boletins.filter(b => b.turmaId === tid).forEach(b => { const x = r[b.alunoId]; if (!x || (b.criado || '') > (x.criado || '')) r[b.alunoId] = b; }); return r;
 }
+/* ---------- faltas no boletim: frase na primeira linha da seção escolhida ---------- */
+const RE_FRASE_FALTAS = /^Até o presente momento, .+ (teve \d+ faltas?|não teve faltas)\.$/;
+function secaoFaltasDe(mod) {
+  const v = mod.secaoFaltas || 'auto'; if (v === 'nenhuma') return null;
+  const s = v === 'auto' ? mod.secoes.find(x => x.ativa && /assiduid|frequ/i.test(x.titulo)) : mod.secoes.find(x => x.key === v && x.ativa);
+  return s ? s.key : null;
+}
+function fraseFaltas(t, a) { const n = somaFaltas((matricula(t.id, a.id) || {}).faltas); return 'Até o presente momento, ' + (a.chamada || primeiroNome(a)) + (n ? ' teve ' + n + ' falta' + (n > 1 ? 's' : '') : ' não teve faltas') + '.'; }
+const semFraseFaltas = tx => { const ls = String(tx || '').split('\n'); return RE_FRASE_FALTAS.test((ls[0] || '').trim()) ? ls.slice(1).join('\n') : String(tx || ''); };
+function faltasAtualizadas(b) {
+  const t = IX.turmas[b.turmaId], a = IX.alunos[b.alunoId]; if (!t || !a || b.estado === 'finalizado') return true;
+  const k = secaoFaltasDe(modeloDaSerie(t.serie)); if (!k) return true;
+  return (((b.secoes || {})[k] || {}).texto || '').split('\n')[0].trim() === fraseFaltas(t, a);
+}
+function aplicarFraseFaltas(b) {
+  const t = IX.turmas[b.turmaId], a = IX.alunos[b.alunoId], k = secaoFaltasDe(modeloDaSerie(t.serie)); if (!k || b.estado === 'finalizado') return false;
+  b.secoes = b.secoes || {}; const s = b.secoes[k] = b.secoes[k] || {}, ls = String(s.texto || '').split('\n'), fr = fraseFaltas(t, a);
+  if (RE_FRASE_FALTAS.test((ls[0] || '').trim())) ls[0] = fr; else if (!String(s.texto || '').trim()) ls.splice(0, ls.length, fr); else ls.unshift(fr);
+  s.texto = ls.join('\n'); return true;
+}
+A.atualizarFaltasBol = async d => {
+  await descarregarFila(); const b = IX.boletins[d.id], t = IX.turmas[b.turmaId];
+  if (!secaoFaltasDe(modeloDaSerie(t.serie))) return informar('Escolha a seção das faltas', '<p>Nenhuma seção ativa do ' + t.serie + 'º ano tem “assiduidade” no título. Em <b>Boletins › Seções do ano</b>, escolha em qual seção entra a frase das faltas.</p>');
+  aplicarFraseFaltas(b); await salvar('boletins', b); render(); aviso('Faltas atualizadas: ' + fraseFaltas(t, IX.alunos[b.alunoId]));
+};
+A.atualizarFaltasTodos = async () => {
+  await descarregarFila(); const t = turmaAtual(), bols = boletinsAtuais(t.id); let n = 0;
+  if (!secaoFaltasDe(modeloDaSerie(t.serie))) return A.atualizarFaltasBol({ id: (Object.values(bols)[0] || {}).id }).catch(() => { });
+  for (const a of alunosDaTurma(t.id)) { const b = bols[a.id]; if (b && b.estado !== 'finalizado' && aplicarFraseFaltas(b)) { await salvar('boletins', b); n++; } }
+  render(); aviso(n ? 'Faltas atualizadas em ' + n + ' boletim' + (n > 1 ? 'ns.' : '.') : 'Nenhum boletim em rascunho para atualizar.');
+};
 function statusBoletim(b) {
   const tu = IX.turmas[b.turmaId], tb = (tu && tu.boletim) || {}, mod = modeloDaSerie(tu ? tu.serie : 1), st = {};
-  mod.secoes.filter(s => s.ativa).forEach(s => { const ind = ((b.secoes || {})[s.key] || {}).texto, tur = (tb.textos || {})[s.key]; st[s.key] = ind && ind.trim() ? 'p' : tur && tur.trim() ? 'r' : 'v'; });
+  mod.secoes.filter(s => s.ativa).forEach(s => { const ind = semFraseFaltas(((b.secoes || {})[s.key] || {}).texto), tur = (tb.textos || {})[s.key]; st[s.key] = ind && ind.trim() ? 'p' : tur && tur.trim() ? 'r' : 'v'; });
   const incompleto = Object.values(st).includes('v') || !(b.poemaTexto || '').trim();
   return { st, incompleto };
 }
@@ -1962,7 +2024,7 @@ T.bol = () => {
 function abaBolAlunos(t) {
   const al = alunosDaTurma(t.id); if (!al.length) return vazio('Cadastre os alunos da turma.');
   const bols = boletinsAtuais(t.id), mod = modeloDaSerie(t.serie), ativas = mod.secoes.filter(s => s.ativa);
-  let h = '<div class="linha"><button class="btn" data-a="exportarTodos">Exportar todos num só documento</button><button class="btn" data-a="finalizarTodos" title="Finaliza de uma vez os boletins completos">✓ Finalizar os boletins prontos</button><button class="btn" data-a="conferirBol" title="Frases repetidas, seções fora do tamanho e concordância de gênero">Conferir os textos</button><button class="btn" data-a="zipBoletins">Um arquivo por criança (.zip)</button><button class="btn" data-a="trazerTodos">Trazer novas anotações para todos</button><button class="btn" data-a="rascunhoTodos" title="Usa a última observação do período">◎ Rascunho da observação nas seções vazias</button></div>';
+  let h = '<div class="linha"><button class="btn" data-a="exportarTodos">Exportar todos num só documento</button><button class="btn" data-a="atualizarFaltasTodos">Atualizar faltas de todos</button><button class="btn" data-a="finalizarTodos"' + (Object.values(boletinsAtuais(t.id)).every(faltasAtualizadas) ? ' title="Finaliza de uma vez os boletins completos"' : ' disabled title="Clique antes em “Atualizar faltas de todos”"') + '>✓ Finalizar os boletins prontos</button><button class="btn" data-a="conferirBol" title="Frases repetidas, seções fora do tamanho e concordância de gênero">Conferir os textos</button><button class="btn" data-a="zipBoletins">Um arquivo por criança (.zip)</button><button class="btn" data-a="trazerTodos">Trazer novas anotações para todos</button><button class="btn" data-a="rascunhoTodos" title="Usa a última observação do período">◎ Rascunho da observação nas seções vazias</button></div>';
   h += '<div class="cartao"><h3>Painel de conferência</h3><p class="dica"><span class="etq" style="background:var(--azulC)">texto individual</span> <span class="etq" style="background:var(--amarC)">só texto da turma</span> <span class="etq" style="background:var(--vermC)">vazio</span></p><div class="grade-fixa"><table class="tabela conf"><tr><th style="text-align:left">Aluno</th>' + ativas.map(s => '<th title="' + e(s.titulo) + '" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:.72rem;text-transform:none;letter-spacing:0;height:7.5rem">' + e(s.titulo) + '</th>').join('') + '<th>Poema</th><th>Situação</th></tr>' +
     al.map(a => { const b = bols[a.id]; const st = b ? statusBoletim(b).st : {}; return '<tr class="clic" data-a="abrirBol" data-al="' + a.id + '"><td style="text-align:left;white-space:nowrap"><b>' + e(a.nome) + '</b></td>' + ativas.map(s => { const v = st[s.key] || ((t.boletim || {}).textos || {})[s.key] ? (st[s.key] || 'r') : 'v'; return '<td class="' + v + '">' + (v === 'p' ? '●' : v === 'r' ? '○' : '·') + '</td>'; }).join('') + '<td class="' + (b && b.poemaTexto ? 'p' : 'v') + '">' + (b && b.poemaTexto ? '●' : '·') + '</td><td>' + (!b ? '<span class="etq">não iniciado</span>' : b.estado === 'finalizado' ? '<span class="etq fin">finalizado</span>' : '<span class="etq rasc">rascunho</span>') + '</td></tr>'; }).join('') + '</table></div></div>';
   return h;
@@ -2051,7 +2113,7 @@ A.rascunhoIntro = async () => {
 };
 function abaBolSecoes(t) {
   const m = modeloDaSerie(t.serie);
-  return '<div class="cartao" data-rec="modelosBoletim:' + m.id + '"><p>As seções valem para todas as turmas do <b>' + t.serie + 'º ano</b>. Ligue, desligue, renomeie e reordene. Cabeçalho, título, citação e poema do novo ano são fixos.</p><table class="tabela"><tr><th>Ativa</th><th>Título da seção</th><th title="Mostrar o título como subtítulo no boletim">Subtítulo</th><th></th></tr>' + m.secoes.map((s, i) => '<tr><td style="width:2.5rem"><input type="checkbox" data-b="secoes.' + i + '.ativa"' + (s.ativa ? ' checked' : '') + ' title="Ativa"></td><td>' + inp('secoes.' + i + '.titulo', s.titulo) + '</td><td style="width:5rem;text-align:center"><input type="checkbox" data-b="secoes.' + i + '.subtitulo"' + (s.subtitulo ? ' checked' : '') + ' title="Mostrar o título como subtítulo no boletim" aria-label="Subtítulo: ' + e(s.titulo) + '"></td><td style="white-space:nowrap"><button class="icone-btn" data-a="moverSecao" data-i="' + i + '" data-d="-1" title="Subir">↑</button><button class="icone-btn" data-a="moverSecao" data-i="' + i + '" data-d="1" title="Descer">↓</button>' + (s.propria ? '<button class="icone-btn" data-a="remSecao" data-i="' + i + '" title="Remover">✕</button>' : '') + '</td></tr>').join('') + '</table><button class="btn peq" data-a="addSecao" style="margin-top:.6rem">+ Nova seção</button>' + ck('poemaSubtitulo', m.poemaSubtitulo, 'Poema do ano: mostrar o título do poema como subtítulo, como as seções (desmarcado, fica centralizado, com “Poema” acima)') + '<p class="dica">“Subtítulo” mostra o título da seção no boletim, em negrito, antes do texto. Desmarcado, a seção entra só com o texto, como antes.</p></div>';
+  return '<div class="cartao" data-rec="modelosBoletim:' + m.id + '"><p>As seções valem para todas as turmas do <b>' + t.serie + 'º ano</b>. Ligue, desligue, renomeie e reordene. Cabeçalho, título, citação e poema do novo ano são fixos.</p><table class="tabela"><tr><th>Ativa</th><th>Título da seção</th><th title="Mostrar o título como subtítulo no boletim">Subtítulo</th><th></th></tr>' + m.secoes.map((s, i) => '<tr><td style="width:2.5rem"><input type="checkbox" data-b="secoes.' + i + '.ativa"' + (s.ativa ? ' checked' : '') + ' title="Ativa"></td><td>' + inp('secoes.' + i + '.titulo', s.titulo) + '</td><td style="width:5rem;text-align:center"><input type="checkbox" data-b="secoes.' + i + '.subtitulo"' + (s.subtitulo ? ' checked' : '') + ' title="Mostrar o título como subtítulo no boletim" aria-label="Subtítulo: ' + e(s.titulo) + '"></td><td style="white-space:nowrap"><button class="icone-btn" data-a="moverSecao" data-i="' + i + '" data-d="-1" title="Subir">↑</button><button class="icone-btn" data-a="moverSecao" data-i="' + i + '" data-d="1" title="Descer">↓</button>' + (s.propria ? '<button class="icone-btn" data-a="remSecao" data-i="' + i + '" title="Remover">✕</button>' : '') + '</td></tr>').join('') + '</table><button class="btn peq" data-a="addSecao" style="margin-top:.6rem">+ Nova seção</button>' + campo('Frase das faltas (“Até o presente momento, … teve N faltas.”)', sel('secaoFaltas', m.secaoFaltas || 'auto', [['auto', 'Automático: a seção com “assiduidade” no título'], ['nenhuma', 'Não incluir a frase das faltas']].concat(m.secoes.filter(s => s.ativa).map(s => [s.key, 'Na seção “' + s.titulo + '”']))), 'A frase entra na primeira linha da seção, com o nome da criança, e é atualizada pelo botão “Atualizar faltas”. O texto já escrito é mantido abaixo dela.') + ck('poemaSubtitulo', m.poemaSubtitulo, 'Poema do ano: mostrar o título do poema como subtítulo, como as seções (desmarcado, fica centralizado, com “Poema” acima)') + '<p class="dica">“Subtítulo” mostra o título da seção no boletim, em negrito, antes do texto. Desmarcado, a seção entra só com o texto, como antes.</p></div>';
 }
 A.moverSecao = async d => { const m = modeloDaSerie(turmaAtual().serie), i = Number(d.i), j = i + Number(d.d); if (j < 0 || j >= m.secoes.length) return; [m.secoes[i], m.secoes[j]] = [m.secoes[j], m.secoes[i]]; await salvar('modelosBoletim', m); render(); };
 A.addSecao = async () => { const v = await dlg({ titulo: 'Nova seção', ok: 'Incluir', corpo: campo('Título', '<input name="t" autofocus>'), validar: v => v.t.trim() ? null : 'Informe o título.' }); if (!v) return; const m = modeloDaSerie(turmaAtual().serie); m.secoes.splice(m.secoes.length - 1, 0, { key: 's' + uid(), titulo: v.t.trim(), ativa: true, propria: true }); await salvar('modelosBoletim', m); render(); };
@@ -2060,7 +2122,7 @@ function editorBoletim(b) {
   const al = IX.alunos[b.alunoId], t = IX.turmas[b.turmaId], mod = modeloDaSerie(t.serie), tb = t.boletim || {}, fin = b.estado === 'finalizado', as = b.assinaturas || tb.assinaturas || {};
   const versoes = D.boletins.filter(x => x.alunoId === b.alunoId && x.turmaId === b.turmaId && x.id !== b.id);
   let h = '<div class="linha"><button class="btn" data-a="voltarSub">← Boletins</button><h2 style="margin:0">' + e(al.nome) + '</h2>' + (fin ? '<span class="etq fin">finalizado</span>' : '<span class="etq rasc">rascunho</span>') + '</div>';
-  h += '<div class="linha" style="margin:.8rem 0">' + (fin ? '<button class="btn pri" data-a="alterarBol" data-id="' + b.id + '">Em tempo ou nova versão</button><button class="btn" data-a="conferirBol" data-id="' + b.id + '">Conferir impressão digital</button>' : '<button class="btn pri" data-a="salvarBol" data-id="' + b.id + '">Salvar</button><button class="btn" data-a="trazerBol" data-id="' + b.id + '">Trazer novas anotações</button><button class="btn" data-a="rascunhoBol" data-id="' + b.id + '" title="Usa a última observação do período">◎ Rascunho nas seções vazias</button><button class="btn" data-a="finalizarBol" data-id="' + b.id + '">Finalizar</button>') + '<button class="btn" data-a="sairBol" data-id="' + b.id + '">Imprimir, exportar ou enviar</button><button class="btn" data-a="previaBol">Atualizar prévia</button></div>';
+  h += '<div class="linha" style="margin:.8rem 0">' + (fin ? '<button class="btn pri" data-a="alterarBol" data-id="' + b.id + '">Em tempo ou nova versão</button><button class="btn" data-a="conferirBol" data-id="' + b.id + '">Conferir impressão digital</button>' : '<button class="btn pri" data-a="salvarBol" data-id="' + b.id + '">Salvar</button><button class="btn" data-a="trazerBol" data-id="' + b.id + '">Trazer novas anotações</button><button class="btn" data-a="rascunhoBol" data-id="' + b.id + '" title="Usa a última observação do período">◎ Rascunho nas seções vazias</button><button class="btn" data-a="atualizarFaltasBol" data-id="' + b.id + '"' + (faltasAtualizadas(b) ? ' title="As faltas do boletim já estão de acordo com as lançadas"' : '') + '>Atualizar faltas</button><button class="btn" data-a="finalizarBol" data-id="' + b.id + '"' + (faltasAtualizadas(b) ? '' : ' disabled title="Clique antes em “Atualizar faltas”: há faltas lançadas que ainda não estão no boletim"') + '>Finalizar</button>' + (faltasAtualizadas(b) ? '' : '<span class="dica" style="align-self:center">Para finalizar, clique antes em <b>Atualizar faltas</b>.</span>')) + '<button class="btn" data-a="sairBol" data-id="' + b.id + '">Imprimir, exportar ou enviar</button><button class="btn" data-a="previaBol">Atualizar prévia</button></div>';
   h += '<p class="dica">Dica: clique com o botão direito na palavra sublinhada para ver sugestões.</p>';
   if (versoes.length) h += '<p class="dica">Outras versões: ' + versoes.map(v => '<a href="#" data-a="abrirBolId" data-id="' + v.id + '">' + (v.estado === 'finalizado' ? 'finalizada em ' + new Date(v.finalizadoEm).toLocaleDateString('pt-BR') : 'rascunho de ' + new Date(v.criado).toLocaleDateString('pt-BR')) + '</a>').join(' · ') + '</p>';
   const pend = D.anotacoes.filter(x => x.estrela && !x.sigilo && x.secao && (x.alunos || []).includes(b.alunoId) && x.turmaId === b.turmaId && !(b.importadas || []).includes(x.id)).length;
@@ -2087,6 +2149,7 @@ A.salvarBol = async d => { await descarregarFila(); const b = IX.boletins[d.id],
 /* finaliza de uma vez os boletins completos; os incompletos ficam de fora e são listados */
 A.finalizarTodos = async () => {
   await descarregarFila(); const t = turmaAtual(), bols = boletinsAtuais(t.id), al = alunosDaTurma(t.id);
+  if (!Object.values(bols).every(faltasAtualizadas)) return aviso('Clique antes em “Atualizar faltas de todos”.');
   const rasc = al.map(a => [a, bols[a.id]]).filter(([, b]) => b && b.estado !== 'finalizado'), prontos = rasc.filter(([, b]) => !statusBoletim(b).incompleto), inc = rasc.filter(([, b]) => statusBoletim(b).incompleto), sem = al.filter(a => !bols[a.id]);
   if (!prontos.length) return informar('Nenhum boletim pronto para finalizar', (inc.length ? '<p>Incompletos (seção vazia ou sem poema): ' + e(inc.map(([a]) => primeiroNome(a)).join(', ')) + '.</p>' : '') + (sem.length ? '<p>Ainda sem boletim: ' + e(sem.map(primeiroNome).join(', ')) + '.</p>' : '') + (!rasc.length && !sem.length ? '<p>Todos os boletins já estão finalizados.</p>' : ''));
   const ok = await dlg({ titulo: 'Finalizar ' + prontos.length + ' boletim' + (prontos.length > 1 ? 'ns' : '') + '?', ok: 'Finalizar', corpo: '<p>Serão finalizados: <b>' + e(prontos.map(([a]) => primeiroNome(a)).join(', ')) + '</b>.</p>' + (inc.length ? '<p>Ficam de fora, por estarem incompletos (seção vazia ou sem poema): ' + e(inc.map(([a]) => primeiroNome(a)).join(', ')) + '.</p>' : '') + (sem.length ? '<p>Ainda sem boletim: ' + e(sem.map(primeiroNome).join(', ')) + '.</p>' : '') + '<p>Depois de finalizado, o boletim não pode mais ser editado: correções só com “Em tempo” ou com uma nova versão. Cada um recebe a sua impressão digital.</p>' });
@@ -2094,7 +2157,7 @@ A.finalizarTodos = async () => {
   for (const [, b] of prontos) { b.estado = 'finalizado'; b.finalizadoEm = new Date().toISOString(); b.hash = await sha256(conteudoParaHash('boletins', b)); await salvar('boletins', b); }
   render(); aviso(prontos.length + ' boletim' + (prontos.length > 1 ? 'ns finalizados.' : ' finalizado.'));
 };
-A.finalizarBol = async d => { const b = IX.boletins[d.id]; if (statusBoletim(b).incompleto && !(await confirmar('Boletim incompleto', 'Há seções vazias ou falta o poema. Finalizar mesmo assim?', 'Continuar'))) return; if (await finalizar('boletins', b)) render(); };
+A.finalizarBol = async d => { const b = IX.boletins[d.id]; if (!faltasAtualizadas(b)) return aviso('Clique antes em “Atualizar faltas”.'); if (statusBoletim(b).incompleto && !(await confirmar('Boletim incompleto', 'Há seções vazias ou falta o poema. Finalizar mesmo assim?', 'Continuar'))) return; if (await finalizar('boletins', b)) render(); };
 A.alterarBol = async d => { const n = await alterarFinalizado('boletins', IX.boletins[d.id]); if (n) { UI.sub = n.id; render(); } };
 A.conferirBol = async d => { const ok = await conferirHash('boletins', IX.boletins[d.id]); informar('Impressão digital', ok ? '<p>✔ O conteúdo é idêntico ao do momento da finalização.</p>' : '<p class="alerta verm">O conteúdo não confere com a impressão digital registrada.</p>'); };
 A.sairBol = async d => { await descarregarFila(); const b = IX.boletins[d.id], al = IX.alunos[b.alunoId]; saidaDocumento(docBoletim(b), { para: emailsAluno(al), assunto: 'Boletim descritivo de ' + primeiroNome(al) }); };
@@ -2425,7 +2488,7 @@ T.agenda = () => {
   let h = '<h1>Calendário</h1><div class="linha"><button class="btn" data-a="mesAnt">‹</button><h2 style="margin:0;min-width:12rem;text-align:center">' + MESES[mes - 1][0].toUpperCase() + MESES[mes - 1].slice(1) + ' de ' + ano + '</h2><button class="btn" data-a="mesProx">›</button><button class="btn peq" data-a="mesHoje">Hoje</button><span class="espaco"></span>' +
     '<select data-c="agOrig"><option value="">Escola e turma</option><option value="escola"' + (UI.filtro.agOrig === 'escola' ? ' selected' : '') + '>Só a escola</option><option value="turma"' + (UI.filtro.agOrig === 'turma' ? ' selected' : '') + '>Só a turma</option></select>' +
     '<button class="btn' + (vis === 'mes' ? ' pri' : '') + ' peq" data-a="aba" data-v="mes">Mês</button><button class="btn' + (vis === 'lista' ? ' pri' : '') + ' peq" data-a="aba" data-v="lista">Lista do mês</button><button class="btn' + (vis === 'ano' ? ' pri' : '') + ' peq" data-a="aba" data-v="ano">O ano em lista</button></div>' +
-    '<div class="linha" style="margin:.7rem 0"><button class="btn pri" data-a="novoEvento">+ Evento da turma</button><button class="btn" data-a="novoEvento" data-escola="1">+ Evento da escola</button><button class="btn" data-a="variosEventos">+ Vários de uma vez</button><button class="btn" data-a="imprimirMes">' + (vis === 'ano' ? 'Imprimir ou exportar o ano' : 'Imprimir ou exportar o mês') + '</button><button class="btn" data-a="exportarIcs">Exportar para outro calendário (.ics)</button></div>';
+    '<div class="linha" style="margin:.7rem 0"><button class="btn pri" data-a="novoEvento">+ Evento da turma</button><button class="btn" data-a="novoEvento" data-escola="1">+ Evento da escola</button><button class="btn" data-a="variosEventos">+ Vários de uma vez</button><button class="btn" data-a="ir" data-t="letivos">Dias letivos</button><button class="btn" data-a="ir" data-t="reunioes">Reuniões com as famílias</button><button class="btn" data-a="imprimirMes">' + (vis === 'ano' ? 'Imprimir ou exportar o ano' : 'Imprimir ou exportar o mês') + '</button><button class="btn" data-a="exportarIcs">Exportar para outro calendário (.ics)</button></div>';
   h += '<p class="dica">' + itensLista('tiposEvento').map(i => '<span class="etq" style="border-color:' + i.cor + ';border-left:6px solid ' + i.cor + '">' + e(i.nome) + '</span>').join(' ') + '</p>';
   if (vis === 'lista') return h + listaAgenda(itens);
   if (vis === 'ano') { const ia = itensAgenda(ano + '-01-01', ano + '-12-31').filter(filtroOrig); return h + (ia.length ? MESES.map((nm, i) => { const xs = ia.filter(x => Number(x.data.slice(5, 7)) === i + 1); return xs.length ? '<h3 style="margin-top:1.2rem">' + nm[0].toUpperCase() + nm.slice(1) + ' de ' + ano + '</h3>' + listaAgenda(xs) : ''; }).join('') : vazio('Nada em ' + ano + '.')); }
@@ -2598,8 +2661,17 @@ setInterval(verificarAvisos, 5 * 60000);
 function eventosDoDia(iso) { const t = turmaAtual(), tid = t && t.id; return D.eventos.filter(v => !v.turmaId || v.turmaId === tid).filter(v => ocorrencias(v, iso, iso).length); }
 const semAula = iso => (eventosDoDia(iso).find(v => v.tipo === 'feriado') || {}).titulo || '';
 const sabadoLetivo = iso => eventosDoDia(iso).some(v => /letiv/i.test(v.titulo || '') && v.tipo !== 'feriado');
-function ehLetivo(iso) { const w = new Date(iso + 'T12:00').getDay(); if (w === 0) return false; if (w === 6) return sabadoLetivo(iso); return !semAula(iso); }
-function diasLetivos(de, ate) { const r = []; if (!de || !ate || ate < de) return r; let d = de, n = 0; while (d <= ate && n++ < 800) { if (ehLetivo(d)) r.push(d); d = somaDias(d, 1); } return r; }
+/* dia letivo: sem dias letivos definidos no Calendário para o ano, vale a regra simples (dias úteis menos feriados,
+   mais sábados marcados como letivos); com eles definidos, valem os intervalos da escola e as exceções da turma (letivos.js) */
+function ehLetivoSimples(iso) { const w = new Date(iso + 'T12:00').getDay(); if (w === 0) return false; if (w === 6) return sabadoLetivo(iso); return !semAula(iso); }
+function ehLetivo(iso, t) {
+  const cfg = letivosAno(iso.slice(0, 4)); if (!cfg) return ehLetivoSimples(iso);
+  if (t === undefined) t = turmaAtual();
+  const ex = t && t.letivosExc && t.letivosExc[iso.slice(0, 4)];
+  if (ex && (ex.fora || []).includes(iso)) return false; if (ex && (ex.dentro || []).includes(iso)) return true;
+  return estadoDiaEscola(iso, cfg) === 'letivo';
+}
+function diasLetivos(de, ate, t) { const r = []; if (!de || !ate || ate < de) return r; let d = de, n = 0; while (d <= ate && n++ < 800) { if (ehLetivo(d, t)) r.push(d); d = somaDias(d, 1); } return r; }
 function letivoAntes(iso) { let d = iso, n = 0; while (n++ < 40) { d = somaDias(d, -1); if (ehLetivo(d)) return d; } return ''; }
 function letivoDepois(iso) { let d = iso, n = 0; while (n++ < 60) { if (ehLetivo(d)) return d; d = somaDias(d, 1); } return iso; }
 
@@ -2888,8 +2960,9 @@ const REL = {
     return { doc: docBase('Lugares_por_temperamento', 'Disposição dos lugares por temperamento — ' + rotuloTurma(t), b) };
   },
   freq(t) {
-    const per = CFG.prefs.periodos || [], dl = comoLista(t.diasLetivos), al = alunosDaTurma(t.id), ult = per.reduce((u, _, i) => al.some(a => { const v = ((matricula(t.id, a.id) || {}).faltas || [])[i]; return v !== null && v !== undefined && v !== ''; }) ? i : u, -1), tot = dl.slice(0, ult + 1).reduce((s, x) => s + (Number(x) || 0), 0);
-    const ctr = '<div data-rec="turmas:' + t.id + '"><p class="dica">Dias letivos de cada período (para calcular o percentual de faltas):</p><div class="grade" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">' + per.map((p, i) => campo(e(p), inp('diasLetivos.' + i, dl[i], 'number', 'min="0" data-rr="1"'))).join('') + '</div></div>';
+    const per = CFG.prefs.periodos || [], dl = diasLetivosDaTurma(t), calc = diasLetivosCalculados(t), al = alunosDaTurma(t.id), ult = per.reduce((u, _, i) => al.some(a => { const v = ((matricula(t.id, a.id) || {}).faltas || [])[i]; return v !== null && v !== undefined && v !== ''; }) ? i : u, -1), tot = dl.slice(0, ult + 1).reduce((s, x) => s + (Number(x) || 0), 0);
+    const ctr = calc ? '<div class="cartao"><p class="dica">Dias letivos de cada período, calculados pelo <a href="#" data-a="ir" data-t="letivos">Calendário › Dias letivos</a> (só para leitura):</p><div class="meses-let">' + per.map((p, i) => '<span><b>' + e(p) + '</b> ' + (dl[i] || 0) + '</span>').join('') + '</div></div>'
+      : '<div data-rec="turmas:' + t.id + '"><p class="dica">Dias letivos de cada período (para calcular o percentual de faltas). Para que sejam contados sozinhos, defina os dias letivos em <a href="#" data-a="ir" data-t="letivos">Calendário › Dias letivos</a>.</p><div class="grade" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">' + per.map((p, i) => campo(e(p), inp('diasLetivos.' + i, dl[i], 'number', 'min="0" data-rr="1"'))).join('') + '</div></div>';
     const linhas = al.map(a => { const f = (matricula(t.id, a.id) || {}).faltas || [], soma = f.reduce((s, x) => s + (Number(x) || 0), 0), pc = tot ? 100 * soma / tot : null; return [a.nome].concat(per.map((_, i) => String(f[i] == null ? '' : f[i]))).concat([String(soma), pc == null ? '—' : pc.toFixed(1) + '%' + (pc >= 25 ? ' ⚠ acima do limite' : pc >= 15 ? ' · atenção' : '')]); });
     const b = [{ t: 'p', txt: tot ? 'Dias letivos considerados: ' + tot + ' (até o ' + per[ult] + ', último período com faltas lançadas). A LDB exige frequência mínima de 75%, ou seja, no máximo 25% de faltas.' : 'Informe os dias letivos de cada período para calcular os percentuais.' }, { t: 'tabela', cab: ['Aluno'].concat(per).concat(['Total', '% de faltas']), linhas, fixa: true }];
     return { controles: ctr, doc: docBase('Frequencia_' + t.ano, 'Frequência — ' + rotuloTurma(t), b), csv: { cab: ['Aluno'].concat(per).concat(['Total', '% de faltas']), linhas } };
@@ -3712,8 +3785,13 @@ A.exportarRep = () => {
 'use strict';
 
 /* ---------- períodos das faltas com datas (os mesmos cortes da observação do período) ---------- */
+/* mês citado no nome do período ("fevereiro", "Mar", "fev/mar"): o período vale do 1º dia do primeiro mês citado ao último dia do último */
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+function mesesDoRotulo(r) { const s = norm1(r), xs = []; MESES_CURTOS.forEach((m, i) => { if (new RegExp('(^|[^a-z])' + m).test(s)) xs.push(i + 1); }); return xs; }
 function periodosComDatas(t) {
-  const n = (CFG.prefs.periodos || []).length || 4, k = { 1: 'anual', 2: 'semestral', 3: 'trimestral', 4: 'bimestral' }[n];
+  const rots = CFG.prefs.periodos || [], ms = rots.map(mesesDoRotulo);
+  if (rots.length && ms.every(x => x.length)) return rots.map((r, j) => { const a = Math.min(...ms[j]), b = Math.max(...ms[j]); return { i: j, rot: r, ini: t.ano + '-' + String(a).padStart(2, '0') + '-01', fim: t.ano + '-' + String(b).padStart(2, '0') + '-' + String(new Date(t.ano, b, 0).getDate()).padStart(2, '0') }; });
+  const n = rots.length || 4, k = { 1: 'anual', 2: 'semestral', 3: 'trimestral', 4: 'bimestral' }[n];
   if (k) return PER_OBS[k].map(([, , i, f], j) => ({ i: j, rot: CFG.prefs.periodos[j], ini: t.ano + '-' + i, fim: t.ano + '-' + f }));
   return (CFG.prefs.periodos || []).map((r, j) => { const a = Math.floor(12 * j / n) + 1, b = Math.floor(12 * (j + 1) / n); return { i: j, rot: r, ini: t.ano + '-' + String(a).padStart(2, '0') + '-01', fim: t.ano + '-' + String(b).padStart(2, '0') + '-' + String(new Date(t.ano, b, 0).getDate()).padStart(2, '0') }; });
 }
@@ -3805,7 +3883,7 @@ function abaAnoLetivo(t) {
   const c = contagemLetiva(t), fx = n => String(Math.round(n * 10) / 10).replace('.', ',');
   let h = '<div class="cartao"><h3>Dias letivos e carga horária de ' + t.ano + '</h3><p class="dica">Contados pelo calendário: a partir do início do ano letivo (' + dataBR(c.ini) + ')' + (ultimoDiaLetivo(t) ? ' até o último dia de aula (' + dataBR(ultimoDiaLetivo(t)) + ')' : '') + ', sem domingos, feriados e recessos, com os sábados letivos. As horas de cada dia vêm do horário semanal (do início da primeira aula ao fim da última); onde o horário semanal não tem a hora das aulas, conta ' + c.hp + ' horas.</p>' +
     '<div class="rolagem"><table class="tabela"><tr><th>Período</th><th>De</th><th>Até</th><th>Dias letivos</th><th>Horas</th></tr>' + c.ps.map(p => '<tr><td>' + e(p.rot) + '</td><td>' + dataBR(p.ini) + '</td><td>' + dataBR(p.fim) + '</td><td>' + p.dias + '</td><td>' + fx(p.horas) + '</td></tr>').join('') + '<tr><td><b>Total</b></td><td></td><td></td><td><b>' + c.dias + '</b> ' + (c.dias >= minDias() ? '<span class="flag az">mínimo de ' + minDias() + ' ✓</span>' : '<span class="flag">faltam ' + (minDias() - c.dias) + ' para ' + minDias() + '</span>') + '</td><td><b>' + fx(c.horas) + '</b> ' + (c.horas >= minHoras() ? '<span class="flag az">mínimo de ' + minHoras() + ' ✓</span>' : '<span class="flag">faltam ' + fx(minHoras() - c.horas) + ' para ' + minHoras() + '</span>') + '</td></tr></table></div>' +
-    '<div class="linha"><button class="btn pri" data-a="usarDiasLetivos">Usar estes dias nas faltas e no boletim</button><button class="btn" data-a="exportarLetivos">Imprimir ou exportar</button>' + campo('Horas por dia sem horário', '<input type="number" min="1" max="10" step="0.5" data-c="horasDia" value="' + c.hp + '" style="width:5rem">') + '</div><p class="dica">Mínimos usados na comparação: ' + minDias() + ' dias letivos e ' + minHoras() + ' horas, definidos pela legislação (hoje, a LDB, art. 24). Se a legislação mudar, ajuste em <a href="#" data-a="ir" data-t="ajustes">Ajustes → Ano letivo</a>. Confira sempre com a secretaria da escola, que é quem responde por essa contagem.</p></div>';
+    '<div class="linha">' + (diasLetivosCalculados(t) ? '<button class="btn pri" data-a="ir" data-t="letivos">Dias letivos do calendário</button>' : '<button class="btn pri" data-a="usarDiasLetivos">Usar estes dias nas faltas e no boletim</button><button class="btn" data-a="ir" data-t="letivos">Definir os dias letivos</button>') + '<button class="btn" data-a="exportarLetivos">Imprimir ou exportar</button>' + campo('Horas por dia sem horário', '<input type="number" min="1" max="10" step="0.5" data-c="horasDia" value="' + c.hp + '" style="width:5rem">') + '</div><p class="dica">Mínimos usados na comparação: ' + minDias() + ' dias letivos e ' + minHoras() + ' horas, definidos pela legislação (hoje, a LDB, art. 24). Se a legislação mudar, ajuste em <a href="#" data-a="ir" data-t="ajustes">Ajustes → Ano letivo</a>. Confira sempre com a secretaria da escola, que é quem responde por essa contagem.</p></div>';
   h += cartaoFestas(t);
   h += '<div class="cartao"><h3>Lista de materiais do ano</h3><p>Sugestão montada a partir do ano e das épocas do currículo (aquarela, giz de cera em bloco, flauta, cadernos de época…), para revisar e enviar às famílias.</p>' + (docsDe('materiais', d => d.turmaId === t.id)[0] ? '<button class="btn" data-a="abrirDocSub" data-id="' + docsDe('materiais', d => d.turmaId === t.id)[0].id + '">Abrir a lista</button>' : '<button class="btn" data-a="materiaisNovo">Montar a lista de materiais</button>') + '</div>';
   return h;
@@ -3905,6 +3983,246 @@ A.conferirBol = async () => {
   informar('Conferência dos textos', tot ? (r.repetidas.length ? '<h3>Frases iguais em três ou mais boletins</h3><p class="dica">Cada criança merece um texto só dela: veja se vale reescrever.</p><ul>' + r.repetidas.slice(0, 12).map(x => '<li>“' + e(x.f.slice(0, 160)) + '” — ' + e([...x.quem].join(', ')) + '</li>').join('') + '</ul>' : '') +
     (r.tamanho.length ? '<h3>Seções muito curtas ou muito longas</h3><ul>' + r.tamanho.map(([a, s, n, k]) => '<li><a href="#" data-x="c" data-a="abrirBol" data-al="' + a.id + '">' + e(primeiroNome(a)) + '</a> · ' + e(s) + ': ' + (k === 'curta' ? 'curta' : 'longa') + ', ' + e(n) + '</li>').join('') + '</ul>' : '') +
     (r.genero.length ? '<h3>Concordância de gênero para conferir</h3><ul>' + r.genero.map(([a, w, ctx]) => '<li><a href="#" data-x="c" data-a="abrirBol" data-al="' + a.id + '">' + e(primeiroNome(a)) + '</a> (' + (a.genero === 'f' ? 'feminino' : 'masculino') + '): ' + e(w) + ' em “…' + e(ctx) + '…”</li>').join('') + '</ul>' : '') + '<p class="dica">É só um apoio: o olhar final é sempre seu.</p>' : '<p>Nada a apontar: sem frases repetidas, sem seções muito fora do tamanho da turma e sem concordância de gênero para conferir.</p>');
+};
+
+</script>
+<script>/* letivos.js */
+/* ==========================================================================
+   Tecelã — Dias letivos (Calendário › Dias letivos), relatório anual dos dias
+   letivos e Reuniões com as famílias (Calendário › Reuniões com as famílias).
+
+   Dias letivos da escola, por ano, em CFG.prefs.letivos[ano]:
+     { faixas: [{ ini, fim }], semSab, semDom, fora: [datas retiradas], dentro: [datas repostas] }
+   Exceções de uma turma em turma.letivosExc[ano] = { fora: [], dentro: [] }.
+   Sem nenhum intervalo definido no ano, vale a regra simples (ehLetivoSimples).
+
+   Reuniões com as famílias: eventos com tipo 'reuniao' e familia: true
+   { data, hora, horaFim, alunoId, resp: [primeiros nomes], convidado, local, modo,
+     titulo, obs, situacao, ataId, contatoId }. Dias indisponíveis da professora,
+   só para esta agenda, em turma.reunioesIndisp = [datas].
+   ========================================================================== */
+'use strict';
+const letivosAno = ano => { const c = (CFG.prefs.letivos || {})[String(ano)]; return c && (c.faixas || []).some(f => f.ini && f.fim) ? c : null; };
+const cfgLetivos = ano => { const L = CFG.prefs.letivos || {}; return L[String(ano)] || { faixas: [], semSab: false, semDom: true, fora: [], dentro: [] }; };
+async function gravarLetivos(ano, c) { const L = Object.assign({}, CFG.prefs.letivos || {}); L[String(ano)] = c; await prefs({ letivos: L }); marcarPendente(); }
+/* estado de um dia no calendário da escola: letivo, retirado (tirado à mão), feriado, fds (sábado/domingo excluído) ou fora (fora dos intervalos) */
+function estadoDiaEscola(iso, cfg) {
+  const dentroFaixa = (cfg.faixas || []).some(f => f.ini && f.fim && iso >= f.ini && iso <= f.fim);
+  if (!dentroFaixa) return 'fora';
+  if ((cfg.dentro || []).includes(iso)) return 'letivo';
+  const w = new Date(iso + 'T12:00').getDay();
+  if ((w === 0 && cfg.semDom !== false) || (w === 6 && cfg.semSab && !sabadoLetivo(iso))) return 'fds';
+  if (semAula(iso)) return 'feriado';
+  if ((cfg.fora || []).includes(iso)) return 'retirado';
+  return 'letivo';
+}
+/* estado para a turma: o da escola com as exceções da turma por cima */
+function estadoDia(iso, t) {
+  const cfg = letivosAno(iso.slice(0, 4)); if (!cfg) return ehLetivoSimples(iso) ? 'letivo' : (new Date(iso + 'T12:00').getDay() % 6 === 0 ? 'fds' : 'feriado');
+  const ex = t && t.letivosExc && t.letivosExc[iso.slice(0, 4)];
+  if (ex && (ex.fora || []).includes(iso)) return 'retiradoTurma';
+  if (ex && (ex.dentro || []).includes(iso)) return 'letivoTurma';
+  return estadoDiaEscola(iso, cfg);
+}
+const LETIVO_TXT = { letivo: 'dia letivo', letivoTurma: 'dia letivo só desta turma', retirado: 'retirado dos dias letivos', retiradoTurma: 'retirado só nesta turma', feriado: 'feriado ou recesso (toque para repor)', fds: 'fim de semana excluído', fora: 'fora dos intervalos' };
+const COR_DIA = { letivo: '#D7E8F6', letivoTurma: '#C9E6C6', retirado: '#F8E2A8', retiradoTurma: '#F8E2A8', feriado: '#F6D2CB', fds: '#EFECE4', fora: '#F7F5EF' };
+/* dias letivos de cada período das faltas: calculados pelo calendário quando há dias letivos definidos; senão, os digitados */
+function diasLetivosDaTurma(t) {
+  if (!t || !letivosAno(t.ano)) return comoLista(t && t.diasLetivos);
+  return periodosComDatas(t).map(p => diasLetivos(p.ini, p.fim, t).length);
+}
+const diasLetivosCalculados = t => !!(t && letivosAno(t.ano));
+
+/* ---------- grade de um mês (tela e impressão) ---------- */
+function htmlGradeMes(ano, mes, celula, opc) {
+  opc = opc || {}; const pri = new Date(ano, mes - 1, 1).getDay(), nd = new Date(ano, mes, 0).getDate();
+  let h = '<table class="cal-mes' + (opc.peq ? ' peq' : '') + '"><tr>' + DIAS_CURTO.map(d => '<th>' + d + '</th>').join('') + '</tr><tr>';
+  for (let i = 0; i < pri; i++) h += '<td class="vazio"></td>';
+  for (let d = 1; d <= nd; d++) { const iso = ano + '-' + String(mes).padStart(2, '0') + '-' + String(d).padStart(2, '0'); h += celula(iso, d); if ((pri + d) % 7 === 0 && d < nd) h += '</tr><tr>'; }
+  const resto = (7 - (pri + nd) % 7) % 7; for (let i = 0; i < resto; i++) h += '<td class="vazio"></td>';
+  return h + '</tr></table>';
+}
+const nomeMes = (ano, mes) => MESES[mes - 1][0].toUpperCase() + MESES[mes - 1].slice(1) + ' de ' + ano;
+
+/* ---------- TELA: DIAS LETIVOS ---------- */
+T.letivos = () => {
+  const t = turmaAtual(); if (!t) return '<h1>Dias letivos</h1>' + vazio('Cadastre uma turma primeiro.');
+  const ano = String(t.ano), cfg = cfgLetivos(ano), ativo = !!letivosAno(ano), modo = UI.letModo === 'turma' ? 'turma' : 'escola';
+  UI.letMes = UI.letMes && UI.letMes.startsWith(ano) ? UI.letMes : (hojeISO().startsWith(ano) ? hojeISO().slice(0, 7) : ((cfg.faixas[0] || {}).ini || ano + '-02-01').slice(0, 7));
+  const [, mes] = UI.letMes.split('-').map(Number);
+  let h = '<div class="linha"><button class="btn" data-a="ir" data-t="agenda">← Calendário</button><h1 style="margin:0">Dias letivos de ' + ano + '</h1></div>';
+  h += '<p>Defina os intervalos de aula do ano. Os dias de cada intervalo contam como letivos; feriados e recessos do calendário e os fins de semana marcados abaixo ficam de fora. Na grade, toque num dia letivo para tirá-lo, e toque de novo para devolvê-lo. Estes dias são a base da frequência, da chamada, dos planos de época e da contagem do ano letivo.</p>';
+  h += '<div class="cartao"><h3>Intervalos de aula (valem para todas as turmas)</h3>' + (cfg.faixas.length ? cfg.faixas.map((f, i) => '<div class="linha faixa-let"><span class="dica">De</span><input type="date" data-c="letFaixa" data-i="' + i + '" data-k="ini" value="' + e(f.ini || '') + '" min="' + ano + '-01-01" max="' + ano + '-12-31"><span class="dica">até</span><input type="date" data-c="letFaixa" data-i="' + i + '" data-k="fim" value="' + e(f.fim || '') + '" min="' + ano + '-01-01" max="' + ano + '-12-31"><button class="icone-btn" data-a="letRemFaixa" data-i="' + i + '" title="Remover este intervalo" aria-label="Remover este intervalo">✕</button></div>').join('') : '<p class="dica">Nenhum intervalo ainda. Enquanto não houver, a Tecelã conta como letivos os dias úteis, menos os feriados e recessos do calendário.</p>') +
+    '<div class="linha"><button class="btn" data-a="letNovaFaixa">+ Intervalo de datas</button></div>' +
+    '<label class="ck"><input type="checkbox" data-c="letSemSab"' + (cfg.semSab ? ' checked' : '') + '> <span>Excluir sábados <span class="dica">(sábados marcados no calendário como letivos continuam contando)</span></span></label>' +
+    '<label class="ck"><input type="checkbox" data-c="letSemDom"' + (cfg.semDom !== false ? ' checked' : '') + '> <span>Excluir domingos</span></label></div>';
+  if (!ativo) return h;
+  /* resumo */
+  const meses = [...Array(12)].map((_, i) => { const a = ano + '-' + String(i + 1).padStart(2, '0') + '-01', b = ano + '-' + String(i + 1).padStart(2, '0') + '-' + String(new Date(Number(ano), i + 1, 0).getDate()).padStart(2, '0'); return diasLetivos(a, b, t).length; }), tot = meses.reduce((s, x) => s + x, 0);
+  h += '<div class="cartao"><div class="linha" style="margin:0"><h3 style="margin:0">Total: ' + tot + ' dias letivos em ' + e(rotuloTurma(t)) + '</h3><span class="etq ' + (tot >= minDias() ? 'fin' : 'sig') + '">mínimo legal: ' + minDias() + '</span><span class="espaco"></span><button class="btn" data-a="abrirRel" data-k="letivos">Relatório do ano</button></div><div class="meses-let">' + meses.map((n, i) => n ? '<span><b>' + MESES[i].slice(0, 3) + '</b> ' + n + '</span>' : '').join('') + '</div></div>';
+  /* grade */
+  h += '<div class="cartao"><div class="linha" style="margin:0 0 .6rem"><div class="opcoes" role="tablist"><button class="btn peq' + (modo === 'escola' ? ' pri' : '') + '" data-a="letModo" data-v="escola">Escola (todas as turmas)</button><button class="btn peq' + (modo === 'turma' ? ' pri' : '') + '" data-a="letModo" data-v="turma">Só ' + e(rotuloTurma(t)) + ' (exceções)</button></div><span class="espaco"></span><button class="btn" data-a="letMes" data-v="-1" aria-label="Mês anterior">‹</button><b style="min-width:10rem;text-align:center">' + nomeMes(ano, mes) + '</b><button class="btn" data-a="letMes" data-v="1" aria-label="Próximo mês">›</button></div>';
+  h += '<p class="dica">' + (modo === 'escola' ? 'Tocando aqui, a mudança vale para todas as turmas.' : 'Tocando aqui, a mudança vale só para esta turma: por exemplo, um dia de passeio só dela ou uma reposição.') + '</p>';
+  h += htmlGradeMes(Number(ano), mes, (iso, d) => {
+    const st = modo === 'escola' ? estadoDiaEscola(iso, cfg) : estadoDia(iso, t), clic = modo === 'escola' ? ['letivo', 'retirado', 'feriado'].includes(st) || (cfg.dentro || []).includes(iso) : st !== 'fora';
+    return '<td class="dia-let st-' + st + (clic ? ' clic' : '') + '"' + (clic ? ' data-a="letDia" data-d="' + iso + '" role="button" tabindex="0"' : ' aria-disabled="true"') + ' title="' + dataBR(iso) + ': ' + e(LETIVO_TXT[st] + (st === 'feriado' && semAula(iso) ? ' — ' + semAula(iso) : '')) + '"><span>' + d + '</span></td>';
+  });
+  h += '<p class="legenda-let">' + ['letivo', 'letivoTurma', 'retirado', 'feriado', 'fds', 'fora'].map(k => '<span><i style="background:' + COR_DIA[k] + '"></i>' + e(LETIVO_TXT[k].replace(' (toque para repor)', '')) + '</span>').join('') + '</p></div>';
+  return h;
+};
+A.letNovaFaixa = async () => { const t = turmaAtual(), c = clone(cfgLetivos(t.ano)), ult = c.faixas[c.faixas.length - 1]; c.faixas.push({ ini: ult && ult.fim ? somaDias(ult.fim, 1) : t.ano + '-02-01', fim: ult && ult.fim ? t.ano + '-12-15' : t.ano + '-07-10' }); if (c.semDom === undefined) c.semDom = true; if (c.semSab === undefined) c.semSab = false; await gravarLetivos(t.ano, c); render(); };
+A.letRemFaixa = async d => { const t = turmaAtual(), c = clone(cfgLetivos(t.ano)); if (!(await confirmar('Remover o intervalo?', 'Os dias dele deixam de contar como letivos.', 'Remover'))) return; c.faixas.splice(Number(d.i), 1); await gravarLetivos(t.ano, c); render(); };
+C_.letFaixa = async el => { const t = turmaAtual(), c = clone(cfgLetivos(t.ano)), f = c.faixas[Number(el.dataset.i)]; if (!f || !el.value) return; if (el.value.slice(0, 4) !== String(t.ano)) { aviso('Use datas de ' + t.ano + '.'); return render(); } f[el.dataset.k] = el.value; if (f.ini && f.fim && f.fim < f.ini) { aviso('O fim do intervalo vem antes do início. Confira as datas.'); } await gravarLetivos(t.ano, c); render(); };
+C_.letSemSab = async el => { const t = turmaAtual(), c = clone(cfgLetivos(t.ano)); c.semSab = el.checked; await gravarLetivos(t.ano, c); render(); };
+C_.letSemDom = async el => { const t = turmaAtual(), c = clone(cfgLetivos(t.ano)); c.semDom = el.checked; await gravarLetivos(t.ano, c); render(); };
+A.letModo = d => { UI.letModo = d.v; render(); };
+A.letMes = d => { const t = turmaAtual(); let [a, m] = UI.letMes.split('-').map(Number); m += Number(d.v); if (m < 1) m = 1; if (m > 12) m = 12; UI.letMes = a + '-' + String(m).padStart(2, '0'); render(); };
+const alternar = (xs, v) => { const i = xs.indexOf(v); if (i < 0) xs.push(v); else xs.splice(i, 1); return xs; };
+A.letDia = async d => {
+  const t = turmaAtual(), ano = String(t.ano), iso = d.d;
+  if (UI.letModo === 'turma') {
+    t.letivosExc = t.letivosExc || {}; const ex = t.letivosExc[ano] = t.letivosExc[ano] || { fora: [], dentro: [] }, base = estadoDiaEscola(iso, cfgLetivos(ano));
+    if (ex.fora.includes(iso)) alternar(ex.fora, iso); else if (ex.dentro.includes(iso)) alternar(ex.dentro, iso); else if (base === 'letivo') ex.fora.push(iso); else ex.dentro.push(iso);
+    await salvar('turmas', t); return render();
+  }
+  const c = clone(cfgLetivos(ano)); c.fora = c.fora || []; c.dentro = c.dentro || [];
+  const st = estadoDiaEscola(iso, c);
+  if (c.dentro.includes(iso)) alternar(c.dentro, iso); else if (st === 'letivo') c.fora.push(iso); else if (st === 'retirado') alternar(c.fora, iso); else if (st === 'feriado') c.dentro.push(iso);
+  await gravarLetivos(ano, c); render();
+};
+
+/* ---------- RELATÓRIO: dias letivos do ano (calendário anual numa folha) + agendas da turma e da escola ---------- */
+function blocoCalAno(t) {
+  const ano = Number(t.ano), meses = [];
+  for (let m = 1; m <= 12; m++) { const nd = new Date(ano, m, 0).getDate(), dias = []; for (let d = 1; d <= nd; d++) { const iso = ano + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0'); dias.push({ d, iso, st: estadoDia(iso, t) }); } meses.push({ m, pri: new Date(ano, m - 1, 1).getDay(), dias, n: dias.filter(x => x.st === 'letivo' || x.st === 'letivoTurma').length }); }
+  return { t: 'calAno', ano, meses };
+}
+function linhasAgenda(itens) { return itens.map(x => [dataBR(x.data) + (x.fim && x.fim !== x.data ? ' a ' + dataBR(x.fim) : ''), diaSemana(x.data), x.hora || '', x.titulo + (x.obs ? ' — ' + x.obs : '')]); }
+REL.letivos = t => {
+  const ano = Number(t.ano), cal = blocoCalAno(t), tot = cal.meses.reduce((s, m) => s + m.n, 0), f = UI.filtro;
+  const todos = itensAgenda(ano + '-01-01', ano + '-12-31'), daTurma = todos.filter(x => x.origem !== 'escola'), daEscola = todos.filter(x => x.origem === 'escola');
+  const ctr = '<div class="linha"><label class="ck"><input type="checkbox" data-c="relLetTurma"' + (f.relLetTurma !== false ? ' checked' : '') + '> <span>Juntar a agenda da turma (outra folha)</span></label><label class="ck"><input type="checkbox" data-c="relLetEscola"' + (f.relLetEscola !== false ? ' checked' : '') + '> <span>Juntar a agenda da escola (outra folha)</span></label><button class="btn" data-a="ir" data-t="letivos">Editar os dias letivos</button></div>' + (letivosAno(ano) ? '' : '<p class="alerta">Os dias letivos de ' + ano + ' ainda não foram definidos em Calendário › Dias letivos. O relatório usa a regra simples: dias úteis menos feriados e recessos.</p>');
+  const b = [{ t: 'p', txt: rotuloTurma(t) + ' · ' + tot + ' dias letivos no ano (mínimo legal: ' + minDias() + ').' }, cal];
+  if (f.relLetTurma !== false) b.push({ t: 'quebra' }, { t: 'h', txt: 'Agenda da turma — ' + rotuloTurma(t) }, daTurma.length ? { t: 'tabela', cab: ['Data', 'Dia', 'Horário', 'Evento'], linhas: linhasAgenda(daTurma) } : { t: 'p', txt: 'Nenhum evento da turma no ano.' });
+  if (f.relLetEscola !== false) b.push({ t: 'quebra' }, { t: 'h', txt: 'Agenda da escola — ' + ano }, daEscola.length ? { t: 'tabela', cab: ['Data', 'Dia', 'Horário', 'Evento'], linhas: linhasAgenda(daEscola) } : { t: 'p', txt: 'Nenhum evento da escola no ano.' });
+  const csv = { cab: ['Mês', 'Dias letivos'], linhas: cal.meses.map(m => [MESES[m.m - 1], m.n]).concat([['Total', tot]]) };
+  return { controles: ctr, doc: Object.assign(docBase('Dias_letivos_' + ano, 'Dias letivos de ' + ano, b), { papel: 'A4' }), csv };
+};
+C_.relLetTurma = el => { UI.filtro.relLetTurma = el.checked; render(); };
+C_.relLetEscola = el => { UI.filtro.relLetEscola = el.checked; render(); };
+(() => { const i = RELATORIOS.findIndex(r => r[0] === 'freq'); RELATORIOS.splice(i + 1, 0, ['letivos', 'Dias letivos do ano', 'O calendário do ano numa folha, com os dias letivos de cada mês; junto, se quiser, a agenda da turma e a da escola, cada uma numa folha.']); RELATORIOS.splice(i + 2, 0, ['reunioes', 'Reuniões com as famílias', 'A agenda das reuniões com as famílias, em lista ou em grade mês a mês.']); })();
+
+/* blocos especiais: calendário anual e grade mensal (na tela e no PDF); no Word, viram tabelas */
+function htmlCalAno(x) {
+  return '<div class="cal-ano">' + x.meses.map(m => '<div class="cal-ano-mes"><div class="cal-ano-tit">' + MESES[m.m - 1][0].toUpperCase() + MESES[m.m - 1].slice(1) + ' <span>' + m.n + ' dia' + (m.n === 1 ? '' : 's') + '</span></div><table><tr>' + DIAS_CURTO.map(d => '<th>' + d[0] + '</th>').join('') + '</tr><tr>' +
+    '<td></td>'.repeat(m.pri) + m.dias.map((d, i) => '<td style="background:' + COR_DIA[d.st] + (d.st === 'fora' || d.st === 'fds' ? ';color:#A39E92' : '') + '">' + d.d + '</td>' + ((m.pri + i + 1) % 7 === 0 && i < m.dias.length - 1 ? '</tr><tr>' : '')).join('') + '</tr></table></div>').join('') +
+    '</div><p class="cal-ano-leg">' + ['letivo', 'retirado', 'feriado', 'fds', 'fora'].map(k => '<span><i style="background:' + COR_DIA[k] + '"></i>' + LETIVO_TXT[k].replace(' (toque para repor)', '') + '</span>').join('') + '</p>';
+}
+function htmlCalMes(x) {
+  return '<h3 style="margin:.6em 0 .3em">' + nomeMes(x.ano, x.mes) + '</h3>' + htmlGradeMes(x.ano, x.mes, (iso, d) => '<td style="vertical-align:top;height:4.2em;border:1px solid #ccc;padding:2px;' + (x.desab && x.desab.includes(iso) ? 'background:#EFECE4;color:#A39E92' : '') + '"><b>' + d + '</b>' + ((x.itens || {})[iso] || []).map(s => '<div style="font-size:.78em;line-height:1.2">' + e(s) + '</div>').join('') + '</td>', { peq: true });
+}
+function blocosParaWord(x) {
+  if (x.t === 'calAno') return x.meses.map(m => ({ t: 'tabela', cab: [MESES[m.m - 1] + ' (' + m.n + ')', '', '', '', '', '', ''].map((c, i) => i ? DIAS_CURTO[i] : c), linhas: (() => { const ls = [], cel = Array(m.pri).fill('').concat(m.dias.map(d => d.st === 'letivo' || d.st === 'letivoTurma' ? String(d.d) : '(' + d.d + ')')); while (cel.length) ls.push(cel.splice(0, 7).concat(Array(7).fill('')).slice(0, 7)); return ls; })() })).concat([{ t: 'nota', txt: 'Entre parênteses: dias sem aula.' }]);
+  if (x.t === 'calMes') { const nd = new Date(x.ano, x.mes, 0).getDate(), ls = []; for (let d = 1; d <= nd; d++) { const iso = x.ano + '-' + String(x.mes).padStart(2, '0') + '-' + String(d).padStart(2, '0'), it = (x.itens || {})[iso]; if (it && it.length) ls.push([dataBR(iso) + ' (' + diaSemana(iso) + ')', it.join('\n')]); } return [{ t: 'h', txt: nomeMes(x.ano, x.mes) }, ls.length ? { t: 'tabela', cab: ['Dia', 'Reuniões'], linhas: ls } : { t: 'p', txt: 'Nenhuma reunião.' }]; }
+  return [x];
+}
+
+/* ---------- TELA: REUNIÕES COM AS FAMÍLIAS ---------- */
+const reunioesDaTurma = t => D.eventos.filter(v => v.familia && v.turmaId === t.id).sort((a, b) => (a.data + (a.hora || '')).localeCompare(b.data + (b.hora || '')));
+const SIT_REU = [['agendada', 'Agendada'], ['realizada', 'Realizada'], ['remarcada', 'Remarcada'], ['cancelada', 'Cancelada']];
+const rotSitReu = k => (SIT_REU.find(x => x[0] === k) || SIT_REU[0])[1];
+const tituloReuniao = (a, resp) => 'Reunião com a família de ' + (a ? primeiroNome(a) : '…') + (resp && resp.length ? ' (' + juntarLista(resp) + ')' : '');
+const resumoReu = r => { const a = IX.alunos[r.alunoId]; return (r.hora || '') + (r.horaFim ? '–' + r.horaFim : '') + ' ' + (a ? primeiroNome(a) : '') + (r.resp && r.resp.length ? ' · ' + r.resp.join(', ') : '') + (r.convidado ? ' · conv.: ' + r.convidado : ''); };
+const diaReuniaoHabilitado = (t, iso) => ehLetivo(iso, t) && !(t.reunioesIndisp || []).includes(iso);
+T.reunioes = () => {
+  const t = turmaAtual(); if (!t) return '<h1>Reuniões com as famílias</h1>' + vazio('Cadastre uma turma primeiro.');
+  const ano = String(t.ano); UI.reuMes = UI.reuMes && UI.reuMes.startsWith(ano) ? UI.reuMes : (hojeISO().startsWith(ano) ? hojeISO().slice(0, 7) : ano + '-02');
+  const [, mes] = UI.reuMes.split('-').map(Number), rs = reunioesDaTurma(t), doMes = rs.filter(r => r.data.startsWith(UI.reuMes)), dia = UI.reuDia && UI.reuDia.startsWith(UI.reuMes) ? UI.reuDia : null;
+  let h = '<div class="linha"><button class="btn" data-a="ir" data-t="agenda">← Calendário</button><h1 style="margin:0">Reuniões com as famílias</h1></div>';
+  h += '<p>Toque num dia para marcar uma reunião. Só os dias letivos ficam disponíveis; para deixar um dia fora desta agenda (por exemplo, um dia em que você não pode), toque nele e use “Indisponível neste dia”. Cada reunião aparece no calendário, gera o convite para a família e, depois, a ata já preenchida.</p>';
+  h += '<div class="linha"><button class="btn" data-a="reuImprimir" data-v="lista">Imprimir em lista</button><button class="btn" data-a="reuImprimir" data-v="grade">Imprimir em grade, mês a mês</button></div>';
+  h += '<div class="cartao"><div class="linha" style="margin:0 0 .6rem"><button class="btn" data-a="reuMes" data-v="-1" aria-label="Mês anterior">‹</button><b style="min-width:10rem;text-align:center">' + nomeMes(ano, mes) + '</b><button class="btn" data-a="reuMes" data-v="1" aria-label="Próximo mês">›</button><span class="espaco"></span><span class="dica">' + doMes.filter(r => r.situacao !== 'cancelada').length + ' reunião(ões) no mês</span></div>';
+  h += htmlGradeMes(Number(ano), mes, (iso, d) => {
+    const hab = diaReuniaoHabilitado(t, iso), ind = (t.reunioesIndisp || []).includes(iso), xs = rs.filter(r => r.data === iso), clic = hab || ind;
+    return '<td class="dia-reu' + (hab ? ' clic' : ' desab') + (ind ? ' indisp' : '') + (iso === dia ? ' sel' : '') + '"' + (clic ? ' data-a="reuDia" data-d="' + iso + '" role="button" tabindex="0"' : ' aria-disabled="true"') + ' title="' + dataBR(iso) + (ind ? ': indisponível nesta agenda' : hab ? '' : ': sem aula') + '"><span>' + d + '</span>' + xs.map(r => '<div class="reu-chip sit-' + (r.situacao || 'agendada') + '">' + e((r.hora || '') + ' ' + (IX.alunos[r.alunoId] ? primeiroNome(IX.alunos[r.alunoId]) : '')) + '</div>').join('') + '</td>';
+  });
+  h += '<p class="legenda-let"><span><i style="background:var(--folha);border:1px solid var(--linha)"></i>disponível</span><span><i style="background:#EFECE4"></i>sem aula</span><span><i style="background:#F8E2A8"></i>indisponível nesta agenda</span></p></div>';
+  if (dia) {
+    const ind = (t.reunioesIndisp || []).includes(dia), xs = rs.filter(r => r.data === dia);
+    h += '<div class="cartao" id="reu-dia"><div class="linha" style="margin:0"><h3 style="margin:0">' + dataBR(dia) + ' · ' + diaSemana(dia) + '</h3><span class="espaco"></span>' + (ind ? '' : '<button class="btn pri" data-a="reuNova" data-d="' + dia + '">+ Reunião neste dia</button>') + '<button class="btn" data-a="reuIndisp" data-d="' + dia + '">' + (ind ? 'Disponível neste dia' : 'Indisponível neste dia') + '</button></div>' + (xs.length ? tabelaReunioes(xs) : '<p class="dica">Nenhuma reunião neste dia.</p>') + '</div>';
+  }
+  h += '<h2>Reuniões de ' + MESES[mes - 1] + '</h2>' + (doMes.length ? '<div class="cartao">' + tabelaReunioes(doMes) + '</div>' : vazio('Nenhuma reunião marcada neste mês.'));
+  return h;
+};
+function tabelaReunioes(xs) {
+  return '<div class="rolagem"><table class="tabela"><tr><th>Data</th><th>Horário</th><th>Criança</th><th>Família</th><th>Convidado</th><th>Situação</th><th></th></tr>' + xs.map(r => { const a = IX.alunos[r.alunoId], ata = r.ataId && IX.atas[r.ataId];
+    return '<tr><td>' + dataBR(r.data) + '</td><td>' + e((r.hora || '') + (r.horaFim ? '–' + r.horaFim : '')) + '</td><td>' + e(a ? a.nome : '—') + '</td><td>' + e((r.resp || []).join(', ')) + '</td><td>' + e(r.convidado || '') + '</td><td><span class="etq ' + (r.situacao === 'realizada' ? 'fin' : r.situacao === 'cancelada' ? 'sig' : 'rasc') + '">' + rotSitReu(r.situacao) + '</span>' + (r.assunto ? '<br><span class="dica">' + e(r.assunto) + '</span>' : '') + '</td><td style="white-space:nowrap"><button class="btn peq" data-a="reuEditar" data-id="' + r.id + '">Editar</button><button class="btn peq" data-a="reuConvite" data-id="' + r.id + '">Convite</button><button class="btn peq" data-a="reuAta" data-id="' + r.id + '">' + (ata ? 'Abrir a ata' : 'Registrar ata') + '</button><button class="icone-btn" data-a="reuExcluir" data-id="' + r.id + '" title="Excluir" aria-label="Excluir">✕</button></td></tr>'; }).join('') + '</table></div>';
+}
+A.reuMes = d => { const t = turmaAtual(); let [a, m] = UI.reuMes.split('-').map(Number); m += Number(d.v); if (m < 1) m = 1; if (m > 12) m = 12; UI.reuMes = a + '-' + String(m).padStart(2, '0'); UI.reuDia = null; render(); };
+A.reuDia = d => { UI.reuDia = d.d; render(); setTimeout(() => { const c = $('#reu-dia'); if (c) c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 40); };
+A.reuIndisp = async d => { const t = turmaAtual(); t.reunioesIndisp = alternar(t.reunioesIndisp || [], d.d); await salvar('turmas', t); render(); };
+async function dialogoReuniao(r, t) {
+  const al = alunosDaTurma(t.id), a0 = IX.alunos[r.alunoId] || null;
+  const respDe = a => (a && a.responsaveis || []).map(x => primeiro(x.nome)).filter(Boolean);
+  const corpoResp = a => respDe(a).map(n => '<label class="ck"><input type="checkbox" name="resp" data-multi="1" value="' + e(n) + '"' + ((r.resp || []).includes(n) || !r.id ? ' checked' : '') + '> ' + e(n) + '</label>').join('') || '<p class="dica">Sem responsáveis cadastrados para esta criança.</p>';
+  const v = await dlg({ titulo: r.id ? 'Editar reunião' : 'Nova reunião com a família', largo: true, ok: 'Salvar',
+    corpo: '<div class="grade" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">' + campo('Data', '<input type="date" name="data" value="' + e(r.data) + '">') + campo('Início', '<input type="time" name="hora" value="' + e(r.hora || '') + '">') + campo('Fim', '<input type="time" name="horaFim" value="' + e(r.horaFim || '') + '">') + campo('Situação', '<select name="situacao">' + SIT_REU.map(([k, n]) => '<option value="' + k + '"' + ((r.situacao || 'agendada') === k ? ' selected' : '') + '>' + n + '</option>').join('') + '</select>') + '</div>' +
+      campo('Criança', '<select name="alunoId" id="reuAluno"><option value="">— escolha —</option>' + al.map(a => '<option value="' + a.id + '"' + (a.id === r.alunoId ? ' selected' : '') + '>' + e(a.nome) + '</option>').join('') + '</select>') +
+      campo('Quem da família participa (primeiro nome)', '<div id="reuResp" class="lista-sel">' + corpoResp(a0) + '</div>') +
+      '<div class="duas">' + campo('Convidado', '<input name="convidado" value="' + e(r.convidado || '') + '" placeholder="Outra pessoa que participa e não está no sistema">') + campo('Local', '<input name="local" value="' + e(r.local || '') + '" placeholder="ex.: sala da classe">') + '</div>' +
+      '<div class="duas">' + campo('Formato', '<select name="modo"><option value="presencial"' + (r.modo !== 'online' ? ' selected' : '') + '>Presencial</option><option value="online"' + (r.modo === 'online' ? ' selected' : '') + '>On-line</option></select>') + campo('Assunto', '<input name="assunto" value="' + e(r.assunto || '') + '" placeholder="ex.: conversa do 1º semestre">') + '</div>' +
+      campo('Observações (só para você)', '<textarea name="obs" style="min-height:3rem">' + e(r.obs || '') + '</textarea>'),
+    aoAbrir: f => { const s = $('#reuAluno', f); s.addEventListener('change', () => { $('#reuResp', f).innerHTML = corpoResp(IX.alunos[s.value]); }); },
+    validar: x => !x.data ? 'Escolha a data.' : !x.alunoId ? 'Escolha a criança.' : x.hora && x.horaFim && x.horaFim <= x.hora ? 'O fim deve ser depois do início.' : null });
+  return v;
+}
+A.reuNova = async d => {
+  const t = turmaAtual(), v = await dialogoReuniao({ data: d.d, situacao: 'agendada', local: 'sala da classe' }, t); if (!v) return;
+  if (!diaReuniaoHabilitado(t, v.data) && !(await confirmar('Dia sem aula ou indisponível', dataBR(v.data) + ' não está disponível nesta agenda. Marcar mesmo assim?', 'Marcar'))) return;
+  const r = await salvar('eventos', Object.assign(dadosReuniao(v, t), { turmaId: t.id, tipo: 'reuniao', familia: true }));
+  UI.reuDia = r.data; UI.reuMes = r.data.slice(0, 7); render(); aviso('Reunião marcada. Ela já aparece no calendário.');
+};
+function dadosReuniao(v, t) { const a = IX.alunos[v.alunoId], resp = v.resp || []; return { data: v.data, hora: v.hora, horaFim: v.horaFim, duracao: v.hora && v.horaFim ? duracaoTxt(v.hora, v.horaFim) : '', alunoId: v.alunoId, resp, convidado: v.convidado.trim(), local: v.local.trim(), modo: v.modo, assunto: v.assunto.trim(), obs: v.obs, situacao: v.situacao, titulo: tituloReuniao(a, resp) }; }
+function duracaoTxt(a, b) { const m = (Number(b.slice(0, 2)) * 60 + Number(b.slice(3, 5))) - (Number(a.slice(0, 2)) * 60 + Number(a.slice(3, 5))); return m > 0 ? (m >= 60 ? Math.floor(m / 60) + 'h' + (m % 60 ? String(m % 60).padStart(2, '0') : '') : m + 'min') : ''; }
+A.reuEditar = async d => { const t = turmaAtual(), r = IX.eventos[d.id]; if (!r) return; const v = await dialogoReuniao(r, t); if (!v) return; Object.assign(r, dadosReuniao(v, t)); await salvar('eventos', r); UI.reuDia = r.data; UI.reuMes = r.data.slice(0, 7); render(); aviso('Reunião salva.'); };
+A.reuExcluir = d => apagarComDesfazer('eventos', d.id, 'Reunião excluída.');
+/* convite para a família, pronto para imprimir ou enviar */
+A.reuConvite = d => {
+  const r = IX.eventos[d.id], t = turmaAtual(), a = IX.alunos[r.alunoId]; if (!a) return;
+  const quando = dataBR(r.data) + ' (' + diaSemana(r.data) + ')' + (r.hora ? ', às ' + r.hora.replace(':', 'h') : '') + (r.horaFim ? ', até ' + r.horaFim.replace(':', 'h') : '');
+  const ola = (r.resp || []).length ? 'Olá, ' + juntarLista(r.resp) + '!' : 'Olá, família!';
+  const bl = [{ t: 'tit', txt: 'Convite para conversa' }, { t: 'p', txt: ola }, { t: 'p', txt: substituir('Gostaria de convidar vocês para uma conversa sobre {nome}' + (r.assunto ? ' (' + r.assunto + ')' : '') + ', no dia ' + quando + (r.modo === 'online' ? ', on-line' : r.local ? ', na ' + r.local.replace(/^(na|no|em)\s+/i, '') : '') + '.', a, t) }];
+  if (r.convidado) bl.push({ t: 'p', txt: 'Participará também: ' + r.convidado + '.' });
+  bl.push({ t: 'p', txt: 'Se o horário não for possível, por favor me avisem para combinarmos outro.' }, { t: 'p', txt: 'Um abraço,' }, { t: 'p', txt: (t.professora || '').replace(/\s*\(fict[íi]ci[oa]\)/i, '') });
+  const para = (a.responsaveis || []).filter(x => (r.resp || []).includes(primeiro(x.nome)) && x.email).map(x => x.email);
+  saidaDocumento({ nome: nomeArq('Convite_' + primeiroNome(a) + '_' + r.data), titulo: 'Convite para conversa — ' + primeiroNome(a), papel: TIM('atas').papel, timbrado: TIM('atas'), blocos: bl }, { para, assunto: 'Convite para conversa sobre ' + primeiroNome(a) });
+};
+/* depois da reunião: ata já preenchida (Reunião com as famílias) e registro no Acompanhamento */
+A.reuAta = async d => {
+  const r = IX.eventos[d.id], t = turmaAtual(), a = IX.alunos[r.alunoId]; if (!r) return;
+  if (r.ataId && IX.atas[r.ataId]) { UI.sub = r.ataId; return ir('atas', r.ataId); }
+  const resp = (a && a.responsaveis || []).filter(x => (r.resp || []).includes(primeiro(x.nome)));
+  const part = [{ nome: t.professora || profTit(t), categoria: 'Professor(a)', presente: true }].concat(resp.map(x => ({ nome: x.nome, categoria: 'Familiar', presente: true, email: x.email || '' })), r.convidado ? [{ nome: r.convidado, categoria: 'Convidado', presente: true }] : []);
+  const tipos = tiposAta(), tipo = tipos.familias ? 'familias' : Object.keys(tipos)[0], num = String(D.atas.filter(x => x.turmaId === t.id && x.tipo === tipo).length + 1).padStart(2, '0');
+  const ata = await salvar('atas', { turmaId: t.id, tipo, subtipo: '', numero: num, data: r.data, inicio: r.hora || '', fim: r.horaFim || '', local: r.modo === 'online' ? 'on-line' : (r.local || ''), assunto: r.assunto || ('conversa sobre ' + (a ? primeiroNome(a) : 'a criança')), pauta: '', participantes: part, texto: '', deliberacoes: '', conclusao: '', encaminhamentos: [], estado: 'rascunho', reuniaoId: r.id });
+  r.ataId = ata.id; if (r.situacao === 'agendada') r.situacao = 'realizada';
+  if (a && !r.contatoId) { const c = await salvar('contatos', { turmaId: t.id, alunoId: a.id, data: r.data, meio: 'reuniao', quem: juntarLista(r.resp || []) || 'a família', assunto: r.assunto || 'Reunião com a família', texto: 'Reunião registrada na ata nº ' + num + '.', combinados: '', sigilo: false, ataId: ata.id }); r.contatoId = c.id; }
+  await salvar('eventos', r); aviso('Ata criada com data, horário e participantes. Escreva o que foi conversado.'); ir('atas', ata.id);
+};
+/* impressão: lista completa ou grade mês a mês */
+A.reuImprimir = d => {
+  const t = turmaAtual(), rs = reunioesDaTurma(t).filter(r => r.situacao !== 'cancelada');
+  if (!rs.length) return aviso('Nenhuma reunião marcada.');
+  let b = [{ t: 'p', txt: rotuloTurma(t) + ' · ' + rs.length + ' reunião(ões)' }];
+  if (d.v === 'lista') b.push({ t: 'tabela', cab: ['Data', 'Horário', 'Criança', 'Família', 'Convidado', 'Local', 'Assunto', 'Situação'], linhas: rs.map(r => [dataBR(r.data) + ' (' + diaSemana(r.data).slice(0, 3) + ')', (r.hora || '') + (r.horaFim ? '–' + r.horaFim : ''), (IX.alunos[r.alunoId] || {}).nome || '', (r.resp || []).join(', '), r.convidado || '', r.modo === 'online' ? 'on-line' : (r.local || ''), r.assunto || '', rotSitReu(r.situacao)]) });
+  else { const meses = [...new Set(rs.map(r => r.data.slice(0, 7)))].sort(); meses.forEach((m, i) => { const [a, mm] = m.split('-').map(Number), itens = {}, desab = []; rs.filter(r => r.data.startsWith(m)).forEach(r => (itens[r.data] = itens[r.data] || []).push(resumoReu(r))); const nd = new Date(a, mm, 0).getDate(); for (let k = 1; k <= nd; k++) { const iso = m + '-' + String(k).padStart(2, '0'); if (!diaReuniaoHabilitado(t, iso)) desab.push(iso); } if (i) b.push({ t: 'quebra' }); b.push({ t: 'calMes', ano: a, mes: mm, itens, desab }); }); }
+  saidaDocumento({ nome: 'Reunioes_familias_' + t.serie + 'ano' + (t.letra || '') + '_' + t.ano, titulo: 'Reuniões com as famílias — ' + rotuloTurma(t), papel: TIM('atas').papel, timbrado: TIM('atas'), blocos: [{ t: 'tit', txt: 'Reuniões com as famílias — ' + rotuloTurma(t) }].concat(b) });
+};
+REL.reunioes = t => {
+  const rs = reunioesDaTurma(t), f = UI.filtro;
+  const ctr = '<div class="linha"><button class="btn" data-a="ir" data-t="reunioes">Abrir a agenda das reuniões</button><button class="btn" data-a="reuImprimir" data-v="lista">Imprimir em lista</button><button class="btn" data-a="reuImprimir" data-v="grade">Imprimir em grade, mês a mês</button></div>';
+  const linhas = rs.map(r => [dataBR(r.data), (r.hora || '') + (r.horaFim ? '–' + r.horaFim : ''), (IX.alunos[r.alunoId] || {}).nome || '', (r.resp || []).join(', '), r.convidado || '', rotSitReu(r.situacao)]);
+  return { controles: ctr, doc: docBase('Reunioes_familias_' + t.ano, 'Reuniões com as famílias — ' + rotuloTurma(t), rs.length ? [{ t: 'tabela', cab: ['Data', 'Horário', 'Criança', 'Família', 'Convidado', 'Situação'], linhas }] : [{ t: 'p', txt: 'Nenhuma reunião marcada.' }]), csv: { cab: ['Data', 'Horário', 'Criança', 'Família', 'Convidado', 'Situação'], linhas } };
 };
 
 </script>
@@ -4197,16 +4515,17 @@ A.anotar = async d => {
 /* ---------- FALTAS: todas as crianças e períodos numa grade ---------- */
 T.faltas = () => {
   const t = turmaAtual(); if (!t) return '<h1>Faltas</h1>' + vazio('Cadastre uma turma primeiro.');
-  const al = alunosDaTurma(t.id), per = CFG.prefs.periodos || [], dl = comoLista(t.diasLetivos); if (!al.length) return '<h1>Faltas</h1>' + vazio('Cadastre os alunos da turma.');
+  const al = alunosDaTurma(t.id), per = CFG.prefs.periodos || [], dl = diasLetivosDaTurma(t), calc = diasLetivosCalculados(t); if (!al.length) return '<h1>Faltas</h1>' + vazio('Cadastre os alunos da turma.');
   let h = '<h1>Faltas</h1><p class="dica">' + e(rotuloTurma(t)) + ' · digite o total de faltas de cada período. Use Tab ou Enter para ir à próxima célula. Os períodos se ajustam em <a href="#" data-a="ir" data-t="ajustes">Ajustes</a>.</p>';
   h += '<div class="cartao grade-fixa"><table class="tabela" id="gradeFaltas"><tr><th>Criança</th>' + per.map(p => '<th>' + e(p) + '</th>').join('') + '<th>Total</th><th>%</th></tr>';
-  h += '<tr data-rec="turmas:' + t.id + '"><td class="dica">Dias letivos</td>' + per.map((_, i) => '<td>' + inp('diasLetivos.' + i, dl[i], 'number', 'min="0" style="width:5rem" data-i="faltaTot"') + '</td>').join('') + '<td></td><td></td></tr>';
+  h += calc ? '<tr><td class="dica">Dias letivos <span title="Calculados pelo Calendário › Dias letivos">ⓘ</span></td>' + per.map((_, i) => '<td class="dl-calc">' + (dl[i] || 0) + '</td>').join('') + '<td class="dl-calc">' + dl.reduce((s, x) => s + (Number(x) || 0), 0) + '</td><td></td></tr>'
+    : '<tr data-rec="turmas:' + t.id + '"><td class="dica">Dias letivos</td>' + per.map((_, i) => '<td>' + inp('diasLetivos.' + i, dl[i], 'number', 'min="0" style="width:5rem" data-i="faltaTot"') + '</td>').join('') + '<td></td><td></td></tr>';
   h += al.map(a => { const m = matricula(t.id, a.id); if (!m) return ''; const f = m.faltas || []; return '<tr data-rec="matriculas:' + m.id + '"><td>' + e(a.nome) + '</td>' + per.map((_, i) => '<td>' + inp('faltas.' + i, f[i], 'number', 'min="0" style="width:5rem" data-i="faltaTot" data-al="' + a.id + '"') + '</td>').join('') + '<td class="ft" data-al="' + a.id + '">' + somaFaltas(f) + '</td><td class="fp" data-al="' + a.id + '">' + pctFaltas(t, f) + '</td></tr>'; }).join('');
-  return h + '</table></div><p class="dica">A LDB exige frequência mínima de 75%: acima de 25% de faltas, a célula fica vermelha; acima de 15%, amarela. O relatório completo está em Relatórios → Frequência.</p>';
+  return h + '</table></div>' + (calc ? '<p class="dica">Os dias letivos vêm do <a href="#" data-a="ir" data-t="letivos">Calendário › Dias letivos</a> e não se editam aqui.</p>' : '<p class="dica">Dica: defina os dias letivos em <a href="#" data-a="ir" data-t="letivos">Calendário › Dias letivos</a> e eles serão contados sozinhos, mês a mês.</p>') + '<p class="dica">A LDB exige frequência mínima de 75%: acima de 25% de faltas, a célula fica vermelha; acima de 15%, amarela. O relatório completo está em Relatórios → Frequência.</p>';
 };
 const somaFaltas = f => comoLista(f).reduce((s, x) => s + (Number(x) || 0), 0);
 function pctFaltas(t, f, cru) {
-  const dl = comoLista(t.diasLetivos); f = comoLista(f); const ult = f.reduce((u, v, i) => v !== null && v !== undefined && v !== '' ? i : u, -1), tot = dl.slice(0, ult + 1).reduce((s, x) => s + (Number(x) || 0), 0);
+  const dl = diasLetivosDaTurma(t); f = comoLista(f); const ult = f.reduce((u, v, i) => v !== null && v !== undefined && v !== '' ? i : u, -1), tot = dl.slice(0, ult + 1).reduce((s, x) => s + (Number(x) || 0), 0);
   const p = tot ? 100 * somaFaltas(f) / tot : null; if (cru) return p; return p == null ? '—' : '<span class="flag ' + (p > 25 ? '' : p > 15 ? 'am' : 'az') + '">' + p.toFixed(1).replace('.', ',') + '%</span>';
 }
 C_.faltaTot = () => setTimeout(() => { const t = turmaAtual(); $$('#gradeFaltas td.ft').forEach(td => { const m = matricula(t.id, td.dataset.al); td.textContent = somaFaltas(m.faltas); $('#gradeFaltas td.fp[data-al="' + td.dataset.al + '"]').innerHTML = pctFaltas(t, m.faltas); }); }, 20);
@@ -4397,7 +4716,7 @@ const PARTILHA = {
       secoes: { vai: ['k', 'tit', 'tipo', 'txt', 'cols', 'linhas', 'campos', 'auto', 'manual', 'naoImprimir'], fica: ['dias'] }, secoesFora: ['avaliacao', 'anterior'] },
     repertorio: { rot: 'Repertório', vai: ['tipo', 'titulo', 'autor', 'rotina', 'texto'], fica: ['turmaId', 'epocaId', 'usos'] },
     biblioteca: { rot: 'Biblioteca', vai: ['grupo', 'titulo', 'texto', 'fonte', 'ordem'], fica: ['origem', 'oculto', 'editado'] },
-    modelosBoletim: { rot: 'Modelo de boletim', vai: ['serie', 'secoes', 'poemaSubtitulo'], fica: [] },
+    modelosBoletim: { rot: 'Modelo de boletim', vai: ['serie', 'secoes', 'poemaSubtitulo', 'secaoFaltas'], fica: [] },
     comunicados: { rot: 'Modelo de comunicado', vai: ['nome', 'texto'], fica: ['chave'] },
     vivencias: { rot: 'Vivência', vai: ['tipo', 'titulo', 'duracao', 'descricao', 'info'], fica: ['turmaId', 'data', 'hora', 'local', 'responsavel', 'epocaId', 'todos', 'participantes', 'repete', 'repeteAte', 'dataFim', 'excecoes', 'avisar', 'obs'],
       info: { vai: ['programacao', 'vestimenta', 'alimentacao', 'cardapio', 'compras', 'percurso', 'adicionais'], fica: ['endereco', 'contato', 'concentracao', 'saida', 'chegada', 'turmasDatas', 'adultos', 'orcamento', 'pagamento', 'documentacao'] } }
@@ -4915,6 +5234,7 @@ const MANUAL_HTML = `
 <p>Os blocos e itens podem ser mudados em <b>Cadastros → Observação: blocos</b> e <b>Observação: itens</b>: o nome, o critério do perfil, a seção do boletim, a ordem, e novos itens.</p>
 
 <h2 id="m-faltas">7. Faltas</h2>
+<p class="dica">Os períodos com nome de mês (fevereiro, março…) usam as datas daquele mês: a chamada de um dia entra no mês certo. Os dias letivos de cada período podem vir sozinhos do Calendário › Dias letivos (veja <a href="#m-letivos">Dias letivos</a>).</p>
 <p>Uma grade com todas as crianças nas linhas e os períodos nas colunas. Digite o total de faltas de cada período; Enter leva à próxima célula. Na primeira linha, digite os <b>dias letivos</b> de cada período: com eles a Tecelã calcula o percentual de faltas. Acima de 15% o percentual fica amarelo; acima de 25% (o limite da LDB), vermelho. Os nomes dos períodos das faltas se ajustam em Ajustes. O relatório completo está em Relatórios → Frequência.</p>
 <p><b>Tabela larga</b> (por exemplo, com os meses): ela tem rolagem própria, com as duas barras sempre à vista. A linha dos períodos fica fixa no alto e a coluna dos nomes fica fixa à esquerda. No computador, <b>Shift + rodinha do mouse</b> rola a tabela para o lado. O mesmo vale para Relatórios → Frequência e para o painel de conferência dos Boletins.</p>
 <p><b>Falta de um dia específico:</b> para lançar a falta de um dia, inclusive de dias anteriores, use a <b>chamada</b> do Painel; aqui ficam os totais de cada período.</p>
@@ -4941,6 +5261,12 @@ const MANUAL_HTML = `
 <ul><li><b>Trazer novas anotações:</b> copia para cada seção as <b>anotações com estrela</b> (e os trechos marcados nas atas) daquela seção. Elas já vêm na primeira vez que o boletim é aberto; o botão traz as que foram lançadas depois. O lápis ✎ ao lado do título da seção mostra todas as anotações daquela seção.</li>
 <li><b>◎ Rascunho da observação:</b> acrescenta ao fim do texto um parágrafo montado com as marcas da <a href="#m-obs">Observação do período</a> nos itens ligados àquela seção (por exemplo: “Ana Clara lê bem oralmente e reconta histórias com propriedade. Está em desenvolvimento: escreve com capricho e em letra legível.”). O botão só aparece nas seções que têm itens do roteiro ligados a elas; se a criança ainda não tiver marcas nesses itens, a Tecelã explica o que falta. “◎ Rascunho nas seções vazias” faz isso de uma vez, só onde ainda não há texto; na aba “Alunos e conferência”, o mesmo botão vale para a turma toda.</li></ul>
 <p>Os dois são pontos de partida: reescreva com o seu olhar.</p>
+<h3 id="m-bol-faltas">Faltas no boletim: “Atualizar faltas”</h3>
+<p>Na primeira linha da seção de assiduidade, a Tecelã escreve a frase das faltas com o nome da criança, por exemplo “Até o presente momento, Ana Clara teve 3 faltas.” ou “Até o presente momento, Ana Clara não teve faltas.”. O texto que você já escreveu fica abaixo dela.</p>
+<ul><li>O botão <b>Atualizar faltas</b>, ao lado de Finalizar, escreve ou atualiza a frase com as faltas lançadas até agora. A frase nunca se repete: ela é substituída.</li>
+<li><b>Finalizar</b> só fica disponível quando a frase está de acordo com as faltas atuais. Se uma falta for lançada depois, o boletim volta a pedir “Atualizar faltas”. Assim, o boletim finalizado sempre leva as faltas mais recentes.</li>
+<li>Na aba “Alunos e conferência”, <b>Atualizar faltas de todos</b> faz o mesmo para a turma, e só depois “Finalizar os boletins prontos” fica disponível.</li>
+<li>A seção da frase é escolhida em <b>Seções do ano</b>: por padrão, a que tem “assiduidade” no título; dá para escolher outra ou não incluir a frase.</li></ul>
 <p><b>Correção ortográfica:</b> o navegador sublinha em vermelho as palavras que não reconhece. Clique com o botão direito na palavra sublinhada para ver sugestões. No celular, as sugestões aparecem no teclado.</p>
 <p><b>Escrevendo no fim de um campo:</b> enquanto você digita, o botão ✎ Anotar (e, no celular, a barra de baixo) sai da frente, e a página rola sozinha para manter à vista a linha que está sendo escrita.</p>
 <p><b>Conferência:</b> a grade mostra, para cada criança e cada seção, se há texto individual (●), só o texto da turma (○) ou nada (·), e se falta o poema.</p>
@@ -4969,6 +5295,8 @@ const MANUAL_HTML = `
 <li><b>Perfil da turma:</b> o retrato do grupo no ano (temperamentos, pensar, sentir e querer, papéis, faltas, registros), com um campo para a sua análise.</li>
 <li><b>Evolução da turma:</b> a turma comparada com ela mesma, ano a ano (aparece depois da primeira virada do ano ou da importação de boletins anteriores).</li>
 <li><b>Equilíbrio do olhar</b> (quem recebeu menos anotações), <b>disposição dos lugares por temperamento</b>, <b>frequência</b>, <b>o ano da turma</b> e <b>currículo e BNCC</b>.</li>
+<li><b>Dias letivos do ano:</b> o calendário do ano numa folha, com os dias letivos de cada mês e o mínimo legal; junto, se quiser, a agenda da turma e a da escola em lista, cada uma numa folha (veja <a href="#m-letivos">Dias letivos</a>).</li>
+<li><b>Reuniões com as famílias:</b> a agenda das reuniões, em lista ou em grade mês a mês (veja <a href="#m-reunioes">Reuniões com as famílias</a>).</li>
 <li><b>Aniversariantes do ano:</b> por mês, com o dia, o dia da semana daquele ano, o nome e a idade que a criança completa. Quando o aniversário cai no fim de semana ou num dia sem aula, aparece uma sugestão de data para comemorar. Escolha entre o nome de chamada e o nome completo.</li>
 <li><b>Poemas:</b> um poema de uma criança num ano, todos os poemas de uma criança (de todos os anos) ou os poemas de um ano de toda a turma, sempre um por folha, com ou sem papel timbrado. Os poemas vêm dos boletins.</li>
 <li><b>Pauta da reunião:</b> escolha a ata (em rascunho) e imprima ou envie a pauta antes da reunião: data, horário, local, assunto, itens numerados, convidados e espaço para anotações. O mesmo botão, “Pauta para imprimir”, fica na própria ata.</li>
@@ -4990,6 +5318,24 @@ const MANUAL_HTML = `
 <li><b>Ver:</b> o mês em grade, a lista do mês ou o ano inteiro em lista. Um toque no número do dia cria um evento naquele dia.</li>
 <li><b>Imprimir ou exportar:</b> a <b>grade do mês</b>, como na tela (folha deitada, semanas em linhas, dias em colunas, eventos em cada dia), ou a lista do mês ou do ano, em PDF, Word ou planilha.</li>
 <li><b>Exportar (.ics):</b> gera um arquivo que abre no Google Agenda, no Outlook e no calendário do celular, com os avisos. Assim os lembretes chegam mesmo com a Tecelã fechada.</li></ul>
+<h3 id="m-letivos">Dias letivos</h3>
+<p>No Calendário, o botão <b>Dias letivos</b> define os dias de aula do ano. Eles são a base da frequência, da chamada, dos planos de época, do diário e da contagem do ano letivo.</p>
+<ul><li><b>Intervalos de aula:</b> inclua quantos intervalos quiser (por exemplo, de 2/2 a 10/7 e de 3/8 a 15/12). Os dias de cada intervalo contam como letivos e valem para <b>todas as turmas</b>.</li>
+<li><b>Fins de semana:</b> “Excluir domingos” vem marcado e “Excluir sábados”, desmarcado. Marcados, esses dias não contam, mesmo dentro dos intervalos. Sábados que o calendário da escola marca como letivos continuam contando.</li>
+<li><b>Feriados e recessos</b> do calendário saem sozinhos. Para repor um deles, toque no dia.</li>
+<li><b>A grade do mês</b> (‹ ›) mostra os dias letivos em azul. Toque num dia letivo para tirá-lo, e toque de novo para devolvê-lo. Dias fora dos intervalos e fins de semana excluídos ficam desabilitados.</li>
+<li><b>Exceções da turma:</b> em “Só esta turma”, a mudança vale só para ela, por exemplo um dia de passeio só dela ou uma reposição. A escola continua igual para as outras turmas.</li>
+<li>O total do ano aparece ao lado do <b>mínimo legal</b> definido em Ajustes.</li>
+<li>Com os dias letivos definidos, a tela <b>Faltas</b> e <b>Relatórios › Frequência</b> mostram os dias letivos de cada período calculados por aqui, só para leitura. Sem nenhum intervalo, a Tecelã conta os dias úteis menos os feriados do calendário, e os dias letivos da frequência continuam digitáveis.</li>
+<li><b>Relatórios › Dias letivos do ano:</b> o calendário do ano numa folha, com os dias letivos de cada mês e a comparação com o mínimo; junto, se quiser, a agenda da turma e a agenda da escola em lista, cada uma numa folha.</li></ul>
+<h3 id="m-reunioes">Reuniões com as famílias</h3>
+<p>No Calendário, o botão <b>Reuniões com as famílias</b> abre uma agenda própria, em grade mês a mês.</p>
+<ul><li>Só os <b>dias letivos</b> ficam disponíveis. Para deixar um dia fora desta agenda (um dia em que você não pode, por exemplo), toque nele e use <b>Indisponível neste dia</b>. Isso não muda os dias letivos.</li>
+<li>Toque num dia e em <b>+ Reunião neste dia</b>: horário de início e fim, criança, quem da família participa (primeiro nome, a partir dos responsáveis cadastrados), <b>convidado</b> (outra pessoa que não está no sistema), local, presencial ou on-line, assunto, situação (agendada, realizada, remarcada ou cancelada) e observações só para você.</li>
+<li>A reunião aparece no <b>calendário</b> e nos próximos dias do Painel.</li>
+<li><b>Convite:</b> gera o convite para a família, com data, horário e local, para imprimir ou enviar.</li>
+<li><b>Registrar ata:</b> depois da conversa, cria a ata de “Reunião com as famílias” já com data, horário, local, assunto e participantes (você, os responsáveis e o convidado), e um registro no <b>Acompanhamento</b> ligado a ela. Você só escreve o que foi conversado. Depois, o mesmo botão abre a ata.</li>
+<li><b>Imprimir:</b> a agenda em lista completa ou em grade, um mês por folha. Também em Relatórios › Reuniões com as famílias.</li></ul>
 
 <h2 id="m-tarefas">16. Tarefas e lembretes</h2>
 <p>Cada tarefa pode ter data e horário, repetir (todo dia, toda semana, a cada 15 dias, todo mês ou a cada tantos dias) e pedir aviso no dia ou alguns dias antes. Ao marcar uma tarefa que se repete, a Tecelã agenda a próxima vez. Os avisos aparecem dentro da Tecelã ao abrir e a cada 5 minutos, e no painel “Próximos dias”; “Permitir avisos do sistema” pede ao navegador para mostrar também os avisos do sistema. Tarefas também nascem dos encaminhamentos das atas e das propostas do conselho de classe. “Imprimir ou exportar a lista” gera as pendentes (ou todas) em PDF, Word ou planilha.</p>
@@ -5080,7 +5426,7 @@ const MANUAL_HTML = `
 
 <h2 id="m-ano">26. Ano letivo: dias, festas e materiais</h2>
 <p>Em <b>Planejamento → Ano letivo</b>:</p>
-<ul><li><b>Dias letivos e carga horária:</b> a Tecelã conta, pelo calendário, os dias letivos de cada período (sem domingos, feriados e recessos, com os sábados letivos), a partir do início do ano letivo e até o último dia de aula (um evento com “fim das aulas” ou “término do ano letivo” no nome). As horas de cada dia vêm do horário semanal; onde não há horário, vale o número de horas que você informar. O total é comparado com os mínimos definidos pela legislação (hoje, 200 dias e 800 horas, pela LDB); se a legislação mudar, ou se a sua rede exigir outros números, mude em <b>Ajustes → Ano letivo</b>. <b>Usar estes dias nas faltas e no boletim</b> leva os números para a tela Faltas e para o cálculo da frequência. Confira sempre com a secretaria.</li>
+<ul><li><b>Dias letivos e carga horária:</b> a Tecelã conta os dias letivos de cada período pelos <a href="#m-letivos">dias letivos do Calendário</a> (ou, enquanto eles não forem definidos, sem domingos, feriados e recessos, com os sábados letivos), a partir do início do ano letivo e até o último dia de aula (um evento com “fim das aulas” ou “término do ano letivo” no nome). As horas de cada dia vêm do horário semanal; onde não há horário, vale o número de horas que você informar. O total é comparado com os mínimos definidos pela legislação (hoje, 200 dias e 800 horas, pela LDB); se a legislação mudar, ou se a sua rede exigir outros números, mude em <b>Ajustes → Ano letivo</b>. Com os dias letivos definidos no Calendário, a frequência já usa esses números sozinha; sem eles, <b>Usar estes dias nas faltas e no boletim</b> leva os números para a tela Faltas e para o cálculo da frequência. Confira sempre com a secretaria.</li>
 <li><b>Festas do ano:</b> Festa da Colheita, Páscoa, Festa das Lanternas, São João, Micael, Festa da Primavera, Espiral do Advento e Auto de Natal, com datas sugeridas para o hemisfério sul (a da Páscoa é calculada). A lista é sua: <b>Editar</b> muda o nome, a data (fixa, ou ligada à Páscoa ou ao 1º domingo do Advento, com dias antes ou depois) e os passos da preparação (um por linha, com os dias antes da festa: “21: Ensaiar as canções”); <b>+ Festa</b> inclui uma festa da sua escola; <b>✕</b> exclui da lista (o que já está no calendário continua lá); “Voltar à lista original” desfaz as mudanças. <b>Colocar no calendário</b>: marque as festas e confira as datas; cada festa entra no calendário e cada passo da preparação (ensaiar as canções, comunicado às famílias, preparar os enfeites…) vira uma tarefa com prazo.</li>
 <li><b>Lista de materiais do ano:</b> uma sugestão montada pelo ano (flauta, tricô, crochê, bordado, compasso…) e pelas épocas do currículo, com um texto de apresentação para as famílias. Revise e envie; as partes com ↻ podem ser montadas de novo.</li></ul>
 
@@ -5126,7 +5472,7 @@ const MANUAL_HTML = `
 <li><b>Salvar como novo arquivo</b> e <b>Abrir outro arquivo</b> ficam em Ajustes → Arquivo.</li>
 <li><b>Ao sair:</b> o botão “Sair” oferece “Salvar e sair”. “Sair sem salvar no arquivo” mantém as alterações só neste navegador (veja acima). Se você fechar a aba direto, o navegador mostra o aviso “Sair do site?”. Na próxima abertura, se ficaram alterações fora do arquivo, a Tecelã pergunta se quer salvar.</li>
 <li>Com a senha ligada, o arquivo é criptografado e só abre com a mesma senha ou com a chave de recuperação. Arquivos de cópia antigos (.json) também abrem.</li>
-<li><b>No celular e no tablet:</b> o sistema não conhece a extensão .tecela (no Android ela aparece como “Arquivo em BIN”). Há uma limitação do Android: quando o <i>Tecela.html</i> é aberto pelo gerenciador de arquivos, o navegador abre a página como “content://” e não entrega à página o arquivo escolhido. Por isso, no Android, abrir um arquivo .tecela pode não funcionar; use a Tecelã no computador para abrir e salvar o arquivo. No iPhone e no iPad, o arquivo precisa estar no app Arquivos. Se escolher outro tipo de arquivo, a Tecelã avisa e nada é alterado.</li></ul>
+<li><b>No celular e no tablet:</b> o sistema não conhece a extensão .tecela (no Android ela aparece como “Arquivo em BIN”). Há uma limitação do Android: quando o <i>Tecela.html</i> é aberto pelo gerenciador de arquivos, o navegador abre a página como “content://” e não entrega à página o arquivo escolhido. Por isso, no Android, abra a Tecelã pelo endereço <b>marciowillians.github.io/tecela/Tecela.html</b>, no Chrome: assim o arquivo .tecela abre normalmente (escolha-o na pasta Downloads). No celular, “Salvar” baixa uma cópia nova do arquivo, em Downloads. Os dados digitados por esse endereço ficam guardados à parte dos do Tecela.html aberto no computador: para levar de um para o outro, use o arquivo .tecela. No iPhone e no iPad, o arquivo precisa estar no app Arquivos. Se escolher outro tipo de arquivo, a Tecelã avisa e nada é alterado.</li></ul>
 <p>Em <b>Ajustes</b> ficam também a senha e o tempo para travar, as <b>fontes dos documentos impressos</b>, os períodos das faltas, os <b>períodos da observação e do conselho</b> (anual, semestral, trimestral ou bimestral), a <b>Computação</b> na BNCC (ligada ou não), o <b>ano letivo</b> (mínimo de dias letivos e mínimo de horas, definidos pela legislação), os <b>anos mostrados</b> (o 9º ano fica oculto por padrão: na tradição Waldorf ele já é o início do ensino médio; pela legislação brasileira, faz parte do Ensino Fundamental), o formato das atas, o prazo de guarda dos egressos, o tema (claro ou escuro) e o tamanho da letra.</p>
 
 <h2 id="m-partilha">32. Partilha pedagógica</h2>

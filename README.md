@@ -1,6 +1,6 @@
 # Tecelã — Fio a fio, tecendo as linhas da vida escolar
 
-Versão 1.9 · Autor e idealizador: Márcio Willians Barreto de Andrade · marciowillians@gmail.com
+Versão 1.10 · Autor e idealizador: Márcio Willians Barreto de Andrade · marciowillians@gmail.com
 Software livre: GNU GPL versão 3, com termos adicionais (arquivo `LICENSE`). Toda cópia deve manter visível o aviso “Tecelã — criada por Márcio Willians Barreto de Andrade”, e versões modificadas devem se identificar como diferentes da original e informar que o autor original não tem responsabilidade sobre as alterações. Bibliotecas e fontes: veja no app, em Ajuda → Créditos e licenças.
 
 A Tecelã é um app em um único arquivo HTML, offline, para a professora ou o professor de classe Waldorf registrar anotações, observações do período, atas, vivências, perfis, o conselho de classe, o planejamento e o acompanhamento das crianças e das famílias, e tecer com esses fios o Boletim Descritivo de cada criança.
@@ -14,7 +14,7 @@ A versão mais recente fica em <https://github.com/MarcioWillians/tecela/release
 1. Abra `dist/Tecela.html` com dois cliques, em qualquer navegador atual. Funciona sem internet.
 2. Na tela inicial, escolha: Continuar, Abrir um arquivo da Tecelã (`.tecela`), Novo, Novo a partir de boletins anteriores (`.docx`), Modelo de demonstração ou Computador de terceiros.
 3. O que você digita é gravado sozinho neste navegador; use **💾 Salvar** (Ctrl+S) com frequência para gravar tudo no seu arquivo `.tecela`, a cópia que vale.
-4. No Android, o `Tecela.html` aberto pelo gerenciador de arquivos (endereço `content://`) não consegue ler o arquivo `.tecela` escolhido: por enquanto, abra e salve o arquivo no computador.
+4. No celular Android, abra a Tecelã pelo endereço <https://marciowillians.github.io/tecela/Tecela.html>: aberto pelo gerenciador de arquivos (`content://`), o navegador não entrega à página o arquivo `.tecela` escolhido. No celular, o “Salvar” baixa uma cópia nova do arquivo.
 5. Mantenha o `Tecela.html` sempre no mesmo lugar: o navegador associa os dados ao local do arquivo.
 
 Para trocar material com colegas, use **Ajustes e arquivo → Partilha pedagógica**: o arquivo `.tecela-partilha` leva só planejamentos, repertório, modelos, comunicados, vivências e festas, sem dados de crianças, famílias, professoras ou da escola, e só acrescenta itens em quem recebe.
@@ -39,13 +39,10 @@ O manual completo está dentro do app, em Ajuda.
 
 1. Edite os arquivos em `src/`.
 2. Rode `python3 build.py`.
-3. Rode os testes (precisam do Playwright), por exemplo `LOG=log.txt node testes/teste-v16.js`:
+3. Rode os testes (precisam do Playwright), por exemplo `LOG=log.txt node testes/teste-v110.js`:
    - `teste-demo.js`: percorre o modelo e gera DOCX e PDF;
    - `teste-fluxo.js`: primeiro uso, senha, arquivo, virada do ano;
-   - `teste-novidades.js`, `teste-v12.js`, `teste-v13.js`, `teste-v14.js`, `teste-v141.js`, `teste-v15.js`, `teste-v151.js`, `teste-v16.js`: funções de cada versão;
-   - `teste-v171.js`: avisos de sugestões, novas versões e BNCC;
-   - `teste-v19.js`: chamada de dias anteriores e tabelas largas com títulos e nomes fixos;
-   - `teste-v181.js`: troca dos períodos das faltas (bimestre → mensal), telas Faltas e Frequência e conserto de dados antigos;
-   - `teste-v18.js`: recuo, prévia e subtítulos do boletim, busca nos textos da turma, PEI – PDI e o botão Anotar ao digitar;
-   - `teste-partilha.js`: Partilha pedagógica (classificação de todas as coleções e campos, limpeza dos nomes, arquivo com e sem senha, importação sem alterar nada, desfazer) (no `teste-v12`, `DOCX=pasta` com boletins **fictícios** testa o importador);
-   - `teste-varredura.js`: todas as telas no computador, no celular e no tablet com tema escuro.
+   - `teste-varredura.js`: todas as telas no computador, no celular e no tablet com tema escuro;
+   - `teste-partilha.js`: Partilha pedagógica (inclusive a classificação obrigatória de toda coleção e campo);
+   - `teste-novidades.js` e `teste-v12.js` a `teste-v110.js`: as funções de cada versão (no `teste-v12`, `DOCX=pasta` com boletins **fictícios** testa o importador). O `teste-v110.js` cobre os períodos mensais, as faltas no boletim, os dias letivos, o relatório anual e as reuniões com as famílias.
+4. Antes de entregar, rode todos e confira que nenhum aponta erro.
