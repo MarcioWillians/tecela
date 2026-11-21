@@ -319,6 +319,22 @@ td.dl-calc{color:var(--tinta2);font-weight:700}
 .cal-ano-tit{font-weight:700;font-size:9.5pt;margin-bottom:2px}.cal-ano-tit span{font-weight:400;color:#666;font-size:8pt}
 .cal-ano-leg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:8.5pt;color:#555}
 @media (max-width:700px){.cal-ano{grid-template-columns:repeat(2,1fr)}.cal-mes td{height:2.6rem;font-size:.8rem;padding:.2rem}}
+/* v1.11: cópia de segurança, desfazer, digitalizados */
+.btn.alerta-copia{background:var(--amarC);border-color:#D9B44A}
+@media (max-width:720px){.so-largo{display:none}}
+.dig-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem;margin:.6rem 0}
+.dig-mini{display:flex;flex-direction:column;gap:.2rem;text-align:left;background:var(--folha);border:1px solid var(--linha);border-radius:10px;padding:.4rem;cursor:pointer;font:inherit;color:inherit}
+.dig-mini:hover,.dig-mini:focus-visible{border-color:var(--azul,#2F6AA8)}
+.dig-mini img,.dig-pdf{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;background:var(--papel)}
+.dig-pdf{display:flex;align-items:center;justify-content:center;font-weight:700;color:#8A3B2E;letter-spacing:.08em}
+.dig-tit{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dig-ver{max-height:65vh;overflow:auto;border:1px solid var(--linha);border-radius:8px;background:var(--papel);text-align:center}
+.dig-ver img{max-width:100%;cursor:zoom-in;display:inline-block}
+.medidor{height:.55rem;background:var(--papel);border-radius:99px;overflow:hidden;margin-top:.4rem}
+.medidor span{display:block;height:100%;background:var(--verde,#5C8A4A)}
+.medidor.meio span{background:#D9A520}
+.medidor.cheio span{background:#C0533A}
+.manual p,.manual li{overflow-wrap:break-word}
 
 </style>
 <style id="pg"></style>
@@ -378,7 +394,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
    Padrões de criptografia e de arquivos adaptados do PazNoBolso 0.9.
    ========================================================================== */
 'use strict';
-const VERSAO = '1.10';
+const VERSAO = '1.11.1';
 /* anos visíveis nas listas: o 9º ano fica oculto por padrão (na tradição Waldorf ele já é o início do ensino médio);
    uma turma de 9º ano que já exista continua aparecendo */
 const seriesVisiveis = extra => { const r = [1, 2, 3, 4, 5, 6, 7, 8]; if (CFG.prefs.mostrar9 || (typeof D !== 'undefined' && D.turmas && D.turmas.some(t => t.serie === 9)) || extra === 9) r.push(9); return r; };
@@ -396,7 +412,7 @@ const AVISO_BNCC_TXT = 'A Tecelã traz a BNCC homologada (2017/2018) e o complem
 const avisoBnccHtml = () => '<div class="alerta aviso-bncc"><b>Sobre a BNCC nesta versão.</b> A Tecelã traz a BNCC homologada (2017/2018) e o complemento de Computação (2022), sem alterações. Se o MEC publicar mudanças e a Tecelã ainda não estiver atualizada, avise por e-mail: <a href="mailto:' + CONTATO + '?subject=Tecel%C3%A3%20-%20BNCC">' + CONTATO + '</a>. ' + NAO_ENVIE + '</div>';
 /* sugestões e novas versões (Ajuda → Sobre, e o link da tela inicial) */
 const contatoHtml = () => '<div class="cartao contato" id="m-contato-app"><h3>Sugestões e novas versões</h3><p>Tem uma sugestão, encontrou um problema ou precisa de algo novo? Escreva para <a href="mailto:' + CONTATO + '?subject=Tecel%C3%A3%20-%20sugest%C3%A3o">' + CONTATO + '</a>. ' + NAO_ENVIE + '</p><p>Para ver se há versão mais recente: ' + lnkExt(LINK_VERSOES, 'github.com/MarcioWillians/tecela') + '. Você está usando a versão ' + VERSAO + '.</p><p><b>Para atualizar:</b> salve o seu arquivo (💾 Salvar), baixe o novo <i>Tecela.html</i> e substitua o antigo na mesma pasta, com o mesmo nome.</p></div>';
-const STORES = ['config', 'timbrado', 'turmas', 'alunos', 'matriculas', 'anotacoes', 'atas', 'marcacoes', 'modelosBoletim', 'boletins', 'perfisAluno', 'perfisTurma', 'biblioteca', 'cadastros', 'eventos', 'vivencias', 'tarefas', 'curriculo', 'observacoes', 'conselhos', 'documentos', 'reforcos', 'programa', 'repertorio', 'contatos', 'comunicados'];
+const STORES = ['config', 'timbrado', 'turmas', 'alunos', 'matriculas', 'anotacoes', 'atas', 'marcacoes', 'modelosBoletim', 'boletins', 'perfisAluno', 'perfisTurma', 'biblioteca', 'cadastros', 'eventos', 'vivencias', 'tarefas', 'curriculo', 'observacoes', 'conselhos', 'documentos', 'reforcos', 'programa', 'repertorio', 'contatos', 'comunicados', 'digitais'];
 const DADOS = STORES.filter(s => s !== 'config');
 
 /* ---------- utilidades ---------- */
@@ -443,14 +459,14 @@ let BANCO = 'tecela', DB = null;
 const D = {}, IX = {};
 let CFG = { prefs: {}, escola: {}, cripto: null };
 const SE = { dk: null, memoria: false, demo: false, travado: false, saiu: false, timers: {}, fila: new Map() };
-const PREFS_PADRAO = { tema: 'claro', fs: 16, inativ: 10, lgpdOk: false, biblio: null, turmaId: null, pendente: false, ultimaCopia: null, periodos: ['1º bimestre', '2º bimestre', '3º bimestre', '4º bimestre'], prazoEgressos: 5, ataFormato: 'moderno', periodoObs: 'semestral', arquivoNome: null, copiaNova: false, fonteTexto: '', fonteTitulo: '', fontePoema: '', reforcoSaida: '15h' , mostrar9: false, navFechados: [], minDias: 200, minHoras: 800 };
+const PREFS_PADRAO = { tema: 'claro', fs: 16, inativ: 10, lgpdOk: false, biblio: null, turmaId: null, pendente: false, ultimaCopia: null, periodos: ['1º bimestre', '2º bimestre', '3º bimestre', '4º bimestre'], prazoEgressos: 5, ataFormato: 'moderno', periodoObs: 'semestral', arquivoNome: null, copiaNova: false, fonteTexto: '', fonteTitulo: '', fontePoema: '', reforcoSaida: '15h' , mostrar9: false, navFechados: [], minDias: 200, minHoras: 800, lembreteCopia: 5, ultimaCopiaSeg: null };
 function zerarMemoria() { DADOS.forEach(s => { D[s] = []; IX[s] = {}; }); }
 zerarMemoria();
 
 function abrirBanco(nome) {
   return new Promise((res, rej) => {
     if (!window.indexedDB) return rej(new Error('sem IndexedDB'));
-    let r; try { r = indexedDB.open(nome, 5); } catch (x) { return rej(x); }
+    let r; try { r = indexedDB.open(nome, 6); } catch (x) { return rej(x); }
     r.onupgradeneeded = () => { const db = r.result; STORES.forEach(s => { if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: 'id' }); }); };
     r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error('banco bloqueado'));
   });
@@ -608,6 +624,8 @@ async function ligarSenha() {
   await descarregarFila();
   const dk = crypto.getRandomValues(new Uint8Array(32)), chave = novaChave(), a = await embrulhar(dk, v.s1), b = await embrulhar(dk, normChave(chave));
   CFG.cripto = { s1: a.s, w1: a.w, s2: b.s, w2: b.w, dica: v.dica.trim() }; SE.dk = dk;
+  /* com a senha da Tecelã ligada, as cópias de segurança passam a usar ela: a chave das cópias guardada no aparelho sai */
+  delete CFG.prefs.copiaSegCripto; delete CFG.prefs.copiaSegDk; await gravarConfig('prefs');
   await gravarConfig('cripto'); await regravarTudo(); await mostrarChave(chave); tocar(true); aviso('Senha ligada. Os dados estão criptografados.'); return true;
 }
 async function desligarSenha() {
@@ -630,14 +648,15 @@ function tocar(forcar) { const n = Date.now(); if (!forcar && n - ultToque < 400
 async function travar() { if (!SE.dk) return; await descarregarFila(); zerarMemoria(); SE.dk = null; CHAVE_CACHE = null; SE.travado = true; $('#modais').innerHTML = ''; telaSenha('A Tecelã foi travada por inatividade.'); }
 
 /* ---------- cópia de segurança ---------- */
-async function pacoteCopia() {
-  await descarregarFila();
+/* opc (cópia de segurança): { dk, cripto } = chave e embrulhos usados para cifrar; copiaSeg marca o arquivo */
+async function pacoteCopia(opc) {
+  opc = opc || {}; await descarregarFila();
   const dados = { config: { escola: CFG.escola, prefs: { periodos: CFG.prefs.periodos, biblio: CFG.prefs.biblio, prazoEgressos: CFG.prefs.prazoEgressos, ataFormato: CFG.prefs.ataFormato, periodoObs: CFG.prefs.periodoObs, mig12: CFG.prefs.mig12, mig13: CFG.prefs.mig13, bnccComputacao: CFG.prefs.bnccComputacao, fonteTexto: CFG.prefs.fonteTexto, fonteTitulo: CFG.prefs.fonteTitulo, fontePoema: CFG.prefs.fontePoema, reforcoSaida: CFG.prefs.reforcoSaida, bilheteReforco: CFG.prefs.bilheteReforco, mig15: CFG.prefs.mig15, mostrar9: CFG.prefs.mostrar9, mig16: CFG.prefs.mig16, minDias: CFG.prefs.minDias, minHoras: CFG.prefs.minHoras, horasDia: CFG.prefs.horasDia, festas: CFG.prefs.festas, letivos: CFG.prefs.letivos } } };
   DADOS.forEach(s => dados[s] = D[s]);
-  const base = { app: 'Tecela', formato: 1, versao: VERSAO, guardado: new Date().toISOString() };
-  if (!SE.dk) return JSON.stringify(Object.assign(base, { dados }));
-  const c = await cifrar(SE.dk, JSON.stringify(dados));
-  return JSON.stringify(Object.assign(base, { cripto: Object.assign({ kdf: 'PBKDF2-SHA256-250000', cifra: 'AES-256-GCM', iv: c.iv }, CFG.cripto), dados: c.d }));
+  const base = Object.assign({ app: 'Tecela', formato: 1, versao: VERSAO, guardado: new Date().toISOString() }, opc.copiaSeg ? { copiaSeg: true } : {}), dk = opc.dk || SE.dk, cr = opc.dk ? opc.cripto : CFG.cripto;
+  if (!dk) return JSON.stringify(Object.assign(base, { dados }));
+  const c = await cifrar(dk, JSON.stringify(dados));
+  return JSON.stringify(Object.assign(base, { cripto: Object.assign({ kdf: 'PBKDF2-SHA256-250000', cifra: 'AES-256-GCM', iv: c.iv }, cr), dados: c.d }));
 }
 /* ---------- arquivo de trabalho (como no PazNoBolso): "Salvar" grava no mesmo arquivo ---------- */
 /* o nome do arquivo leva a data e a hora em que foi guardado: Tecela_Escola_2026-11-05_14h32.tecela */
@@ -680,12 +699,17 @@ async function lerCopia(txt) {
   });
   if (!r) return null;
   const dados = normalizarDados(JSON.parse(await decifrar(dk, c.iv, o.dados)));
-  return { dados, cr: { s1: c.s1, w1: c.w1, s2: c.s2, w2: c.w2, dica: c.dica || '' }, dk, quando: o.guardado };
+  return { dados, cr: { s1: c.s1, w1: c.w1, s2: c.s2, w2: c.w2, dica: c.dica || '' }, dk, quando: o.guardado, copiaSeg: !!o.copiaSeg };
 }
 async function aplicarCopia(r) {
   zerarMemoria(); DADOS.forEach(s => { D[s] = r.dados[s]; indexar(s); });
   if (r.dados.config.escola) CFG.escola = r.dados.config.escola;
   if (r.dados.config.prefs) Object.assign(CFG.prefs, r.dados.config.prefs);
+  /* cópia de segurança aberta: a professora escolhe se a Tecelã continua com senha neste aparelho */
+  if (r.copiaSeg && r.cr && !SE.memoria) {
+    const v = await dlg({ titulo: 'Cópia de segurança aberta', ok: 'Continuar', cancelar: false, corpo: '<p>Esta cópia de segurança estava protegida por senha. E neste aparelho?</p><label class="ck"><input type="radio" name="modo" value="com" checked> <span><b>Continuar com senha</b> neste aparelho (a mesma senha da cópia; recomendado)</span></label><label class="ck"><input type="radio" name="modo" value="sem"> <span><b>Usar sem senha</b> neste aparelho, como antes. As próximas cópias de segurança continuam com esta senha.</span></label>' });
+    if (v && v.modo === 'sem') { CFG.prefs.copiaSegCripto = r.cr; CFG.prefs.copiaSegDk = b64(r.dk); r = Object.assign({}, r, { cr: null, dk: null }); }
+  }
   if (r.cr) { CFG.cripto = r.cr; SE.dk = r.dk; } else { CFG.cripto = null; SE.dk = null; if (DB && !SE.memoria) await idbApagar('config', 'cripto'); } // o arquivo define a senha
   if (DB && !SE.memoria) { if (CFG.cripto) await gravarConfig('cripto'); await gravarConfig('escola'); CFG.prefs.lgpdOk = true; CFG.prefs.pendente = false; await gravarConfig('prefs'); await regravarTudo(); }
   if (!IX.turmas[CFG.prefs.turmaId]) CFG.prefs.turmaId = (D.turmas.slice().sort((a, b) => b.ano - a.ano)[0] || {}).id || null;
@@ -699,7 +723,8 @@ async function restaurarCopia(substituir) {
   let r; try { r = await lerCopia(await f.text()); } catch (x) { await informar('Não foi possível abrir', '<p>' + e(x.message) + '</p>'); return false; }
   if (!r) return false;
   if (substituir) { const ok = await confirmar('Substituir os dados?', 'O arquivo foi salvo em <b>' + (r.quando ? new Date(r.quando).toLocaleString('pt-BR') : 'data desconhecida') + '</b>. Os dados atuais deste aparelho serão substituídos pelos dele.', 'Substituir'); if (!ok) return false; }
-  await aplicarCopia(r); await prefs({ arquivoNome: f.name, pendente: false }); await guardarHandle(esc.handle || null); /* sem o caminho do arquivo, “Salvar” pergunta onde salvar: nunca grava no arquivo anterior */ aviso('Arquivo aberto: ' + f.name); return true;
+  /* uma cópia de segurança não vira o arquivo de trabalho: o próximo “Salvar” pergunta onde salvar */
+  await aplicarCopia(r); await prefs({ arquivoNome: r.copiaSeg ? null : f.name, pendente: !!r.copiaSeg }); await guardarHandle(r.copiaSeg ? null : esc.handle || null); /* sem o caminho do arquivo, “Salvar” pergunta onde salvar: nunca grava no arquivo anterior */ aviso('Arquivo aberto: ' + f.name); return true;
 }
 
 /* ---------- ZIP simples (sem compressão), para entregar vários arquivos de uma vez ---------- */
@@ -782,7 +807,8 @@ const LISTAS = {
   atencao: { nome: 'Tipos de ponto de atenção', dica: 'Usados no cadastro do aluno. Pontos de atenção são sigilosos por padrão.', padrao: [['saude', 'Saúde'], ['alergia', 'Alergia ou restrição alimentar'], ['visao-audicao', 'Visão ou audição'], ['sono', 'Sono'], ['emocional', 'Emocional'], ['aprendizagem', 'Aprendizagem'], ['terapia', 'Acompanhamento terapêutico'], ['familia', 'Família e guarda'], ['movimento', 'Movimento e coordenação'], ['outro', 'Outro']] },
   tiposVivencia: { nome: 'Tipos de vivência', padrao: [['oficio', 'Visita a um ofício'], ['oficina', 'Oficina'], ['saida', 'Saída pedagógica'], ['festa', 'Festa do ano'], ['teatro', 'Teatro ou apresentação'], ['mutirao', 'Mutirão'], ['outra', 'Outra']] },
   tiposEvento: { nome: 'Tipos de evento do calendário', extras: ['cor'], padrao: [['epoca', 'Época', { cor: '#2F6AA8' }], ['vivencia', 'Vivência', { cor: '#8A62A8' }], ['reuniao', 'Reunião', { cor: '#55697F' }], ['festa', 'Festa', { cor: '#E9B93A' }], ['feriado', 'Feriado ou recesso', { cor: '#C8452F' }], ['escola', 'Calendário da escola', { cor: '#7DAA6E' }], ['outro', 'Outro', { cor: '#999999' }]] },
-  componentes: { nome: 'Componentes do currículo', dica: 'Os ligados a uma área da BNCC entram na comparação com a BNCC.', extras: ['bncc'], padrao: [['LP', 'Língua Portuguesa', { bncc: 'LP' }], ['MA', 'Matemática', { bncc: 'MA' }], ['CI', 'Ciências', { bncc: 'CI' }], ['HI', 'História', { bncc: 'HI' }], ['GE', 'Geografia', { bncc: 'GE' }], ['AR', 'Arte', { bncc: 'AR' }], ['EF', 'Educação Física e jogos', { bncc: 'EF' }], ['LI', 'Língua Inglesa', { bncc: 'LI' }], ['ER', 'Religiosidade', { bncc: 'ER' }], ['euritmia', 'Euritmia', { bncc: '' }], ['trabalhos', 'Trabalhos manuais', { bncc: '' }], ['musica', 'Música', { bncc: 'AR' }], ['jardinagem', 'Jardinagem', { bncc: 'CI' }], ['marcenaria', 'Marcenaria', { bncc: '' }], ['alemao', 'Alemão', { bncc: '' }], ['computacao', 'Computação', { bncc: 'CO' }]] }
+  componentes: { nome: 'Componentes do currículo', dica: 'Os ligados a uma área da BNCC entram na comparação com a BNCC.', extras: ['bncc'], padrao: [['LP', 'Língua Portuguesa', { bncc: 'LP' }], ['MA', 'Matemática', { bncc: 'MA' }], ['CI', 'Ciências', { bncc: 'CI' }], ['HI', 'História', { bncc: 'HI' }], ['GE', 'Geografia', { bncc: 'GE' }], ['AR', 'Arte', { bncc: 'AR' }], ['EF', 'Educação Física e jogos', { bncc: 'EF' }], ['LI', 'Língua Inglesa', { bncc: 'LI' }], ['ER', 'Religiosidade', { bncc: 'ER' }], ['euritmia', 'Euritmia', { bncc: '' }], ['trabalhos', 'Trabalhos manuais', { bncc: '' }], ['musica', 'Música', { bncc: 'AR' }], ['jardinagem', 'Jardinagem', { bncc: 'CI' }], ['marcenaria', 'Marcenaria', { bncc: '' }], ['alemao', 'Alemão', { bncc: '' }], ['computacao', 'Computação', { bncc: 'CO' }]] },
+  albuns: { nome: 'Álbuns dos digitalizados', dica: 'Organizam as fotos e os documentos digitalizados.', padrao: [['atas', 'Atas'], ['caderneta', 'Caderneta'], ['comunicados', 'Comunicados e bilhetes'], ['trabalhos', 'Trabalhos das crianças'], ['vivencias', 'Fotos das vivências'], ['escola', 'Documentos da escola'], ['outros', 'Outros']] },
 };
 function garantirCadastros() {
   const novos = [];
@@ -823,6 +849,7 @@ function ondeUsado(lista, chave) {
     case 'atencao': return D.alunos.flatMap(a => (a.atencao || []).filter(x => x.tipo === chave).map(() => 'Ponto de atenção de ' + a.nome));
     case 'tiposVivencia': return D.vivencias.filter(v => v.tipo === chave).map(v => 'Vivência: ' + v.titulo + ' (' + dataBR(v.data) + ')');
     case 'tiposEvento': return D.eventos.filter(v => v.tipo === chave).map(v => 'Evento: ' + v.titulo + ' (' + dataBR(v.data) + ')');
+    case 'albuns': return D.digitais.filter(x => x.album === chave).map(x => 'Digitalizado: ' + x.titulo);
     case 'componentes': return D.curriculo.filter(v => v.componente === chave).map(v => 'Época do ' + v.serie + 'º ano: ' + v.titulo);
     case 'blocosObs': return itensLista('itensObs', true).filter(i => i.bloco === chave).map(i => 'Item da observação: ' + i.nome);
     case 'itensObs': return D.observacoes.filter(r => (r.marcas || {})[chave] || (r.notas || {})[chave]).map(r => 'Observação de ' + nAl(r.alunoId) + ' (' + rotPeriodo(r.periodo) + ')');
@@ -1417,7 +1444,7 @@ const GRUPOS = [
   ['Dia a dia', [['painel', 'Painel', '✿'], ['anot', 'Anotações', '✎'], ['obs', 'Observação do período', '◎'], ['faltas', 'Faltas', '✓']]],
   ['Documentos', [['bol', 'Boletins', '❦'], ['atas', 'Atas', '❏'], ['conselho', 'Conselho de classe', '⚖'], ['perfis', 'Perfil do aluno', '☺'], ['pei', 'PEI – PDI', '✦'], ['acomp', 'Acompanhamento', '❂'], ['relat', 'Relatórios', '▥']]],
   ['Planejar', [['planej', 'Planejamento', '◫'], ['repert', 'Repertório', '♫'], ['curric', 'Currículo e BNCC', '❖'], ['agenda', 'Calendário', '▦'], ['tarefas', 'Tarefas', '☑']]],
-  ['A turma', [['turma', 'Turma e alunos', '◍'], ['viv', 'Vivências', '✺'], ['reforco', 'Reforço', '✚'], ['comunic', 'Comunicados', '✉'], ['combinados', 'Combinados', '❀']]],
+  ['A turma', [['turma', 'Turma e alunos', '◍'], ['viv', 'Vivências', '✺'], ['reforco', 'Reforço', '✚'], ['comunic', 'Comunicados', '✉'], ['combinados', 'Combinados', '❀'], ['digitais', 'Digitalizados', '▣']]],
   ['Ajustar', [['biblio', 'Biblioteca', '❧'], ['cadastros', 'Cadastros', '☰'], ['timbrado', 'Papel timbrado', '▤'], ['ajustes', 'Ajustes e arquivo', '⚙'], ['ajuda', 'Ajuda', '?']]]];
 const TELAS = GRUPOS.flatMap(g => g[1]);
 const MOVEL = ['painel', 'anot', 'obs', 'bol'];
@@ -1451,13 +1478,13 @@ const htmlNav = () => {
 };
 A.navGrupo = async d => { const f = (CFG.prefs.navFechados || []).slice(), i = f.indexOf(d.g); if (i < 0) f.push(d.g); else f.splice(i, 1); await prefs({ navFechados: f }); render(); };
 const htmlTopo = t => '<div class="turma">' + (turmasVisiveis().length ? '<select data-c="trocaTurma" aria-label="Turma">' + turmasVisiveis().map(x => '<option value="' + x.id + '"' + (t && x.id === t.id ? ' selected' : '') + '>' + e(rotuloTurma(x)) + '</option>').join('') + '</select>' : '') + '</div>' +
-  '<div class="linha"><input type="search" class="busca" data-c="busca" placeholder="Buscar…  (Ctrl+K)" aria-label="Buscar em tudo" value="' + e(UI.tela === 'busca' ? UI.filtro.busca || '' : '') + '"><button class="btn peq" data-a="manualEm" data-id="m-' + UI.tela + '" title="Ajuda desta tela">?</button><button class="btn peq' + (CFG.prefs.pendente && !SE.demo ? ' pri' : '') + '" data-a="copia" title="' + e((CFG.prefs.arquivoNome ? 'Salvar em ' + CFG.prefs.arquivoNome : 'Salvar em um arquivo') + ' (Ctrl+S)') + '">💾 Salvar</button><button class="btn peq" data-a="sair">Sair</button></div>' + htmlEstadoSalvo();
+  '<div class="linha"><input type="search" class="busca" data-c="busca" placeholder="Buscar…  (Ctrl+K)" aria-label="Buscar em tudo" value="' + e(UI.tela === 'busca' ? UI.filtro.busca || '' : '') + '"><button class="btn peq" data-a="manualEm" data-id="m-' + UI.tela + '" title="Ajuda desta tela">?</button><button class="btn peq" data-a="desfazerTexto" title="Desfazer a última alteração de texto (Ctrl+Z fora do campo)" aria-label="Desfazer a última alteração de texto">↶</button><button class="btn peq' + (CFG.prefs.pendente && !SE.demo ? ' pri' : '') + '" data-a="copia" title="' + e((CFG.prefs.arquivoNome ? 'Salvar em ' + CFG.prefs.arquivoNome : 'Salvar em um arquivo') + ' (Ctrl+S)') + '">💾 Salvar</button><button class="btn peq' + (copiaVencida() ? ' alerta-copia' : '') + '" data-a="copiaSeg" title="Cópia de segurança, com senha, para guardar fora deste computador">🛟<span class="so-largo"> Cópia</span></button><button class="btn peq" data-a="sair">Sair</button></div>' + htmlEstadoSalvo();
 /* indicador discreto: o que se digita é gravado sozinho neste aparelho; o arquivo é a cópia que vale */
 function htmlEstadoSalvo() {
   if (SE.demo) return '<button class="estado-salvo" data-a="sobreSalvar">Modelo de demonstração: nada é salvo em arquivo</button>';
   const hm = d => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), u = CFG.prefs.ultimaCopia;
   const arq = !u ? 'ainda não salvo em arquivo' : 'arquivo salvo ' + quandoFoi(u);
-  return '<button class="estado-salvo' + (CFG.prefs.pendente ? ' pend' : '') + '" data-a="sobreSalvar" title="Como a Tecelã salva o seu trabalho"><span class="ponto"></span>' + (SE.memoria ? 'Só na memória (computador de terceiros)' : '✓ Salvo neste aparelho' + (SE.salvoAs ? ' às ' + hm(SE.salvoAs) : '')) + ' · ' + arq + (CFG.prefs.pendente ? ' · falta salvar no arquivo' : '') + '</button>';
+  return '<button class="estado-salvo' + (CFG.prefs.pendente ? ' pend' : '') + '" data-a="sobreSalvar" title="Como a Tecelã salva o seu trabalho"><span class="ponto"></span>' + (SE.memoria ? 'Só na memória (computador de terceiros)' : '✓ Salvo neste aparelho' + (SE.salvoAs ? ' às ' + hm(SE.salvoAs) : '')) + ' · ' + arq + (CFG.prefs.pendente ? ' · falta salvar no arquivo' : '') + '</button>' + (copiaVencida() ? '<button class="estado-salvo pend" data-a="copiaSeg">🛟 ' + e(textoCopiaVencida()) + '</button>' : '');
 }
 function quandoFoi(iso) { const d = new Date(iso), h = new Date(), dias = Math.floor((new Date(h.toDateString()) - new Date(d.toDateString())) / 864e5); return dias <= 0 ? 'hoje às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : dias === 1 ? 'ontem' : 'há ' + dias + ' dias'; }
 const atualizarEstadoSalvo = () => { const b = $('.estado-salvo'); if (b) b.outerHTML = htmlEstadoSalvo(); const c = $('.topo [data-a=copia]'); if (c) c.classList.toggle('pri', !!CFG.prefs.pendente && !SE.demo); };
@@ -1527,12 +1554,13 @@ window.addEventListener('scroll', () => { const f = $('.fab'); if (!f) return; f
 A.mais = () => dlg({ titulo: 'Menu', ok: false, cancelar: 'Fechar', corpo: GRUPOS.map(([g, xs]) => '<p class="dica" style="margin:.6rem 0 .2rem">' + g + '</p><div class="menu-mais">' + xs.map(([k, r, ic]) => '<button type="button" class="btn" data-x="c" data-a="ir" data-t="' + k + '"><span class="ic">' + ic + '</span> ' + r + '</button>').join('') + '</div>').join('') });
 C_.busca = el => { UI.filtro.busca = el.value.trim(); if (UI.filtro.busca.length < 2) return; if (UI.tela !== 'busca') { UI.voltarBusca = UI.tela; } ir('busca'); const i = $('.busca'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } };
 C_.trocaTurma = async el => { await prefs({ turmaId: el.value }); UI.sub = null; render(); };
-A.copia = () => fazerCopia();
+A.copia = async () => { const ok = await fazerCopia(); if (ok) explicarCopiaUmaVez(); return ok; };
 A.sair = async () => {
   await descarregarFila();
   if (SE.demo) return A.sairDemo();
-  const v = await dlg({ titulo: 'Sair da Tecelã', ok: false, cancelar: 'Voltar', corpo: (CFG.prefs.pendente ? '<p>Há alterações que ainda não foram salvas no arquivo' + (CFG.prefs.arquivoNome ? ' em <b>' + e(CFG.prefs.arquivoNome) + '</b>' : '') + '.</p>' : '<p>Tudo está salvo' + (CFG.prefs.arquivoNome ? ' em <b>' + e(CFG.prefs.arquivoNome) + '</b>' : '') + '.</p>'), extra: '<button type="button" class="btn" data-x="sem">Sair' + (CFG.prefs.pendente ? ' sem salvar no arquivo' : '') + '</button>' + (CFG.prefs.pendente ? '<button type="button" class="btn pri" data-x="com">Salvar e sair</button>' : '') });
+  const v = await dlg({ titulo: 'Sair da Tecelã', ok: false, cancelar: 'Voltar', corpo: (CFG.prefs.pendente ? '<p>Há alterações que ainda não foram salvas no arquivo' + (CFG.prefs.arquivoNome ? ' em <b>' + e(CFG.prefs.arquivoNome) + '</b>' : '') + '.</p>' : '<p>Tudo está salvo' + (CFG.prefs.arquivoNome ? ' em <b>' + e(CFG.prefs.arquivoNome) + '</b>' : '') + '.</p>') + (copiaVencida() ? '<p class="alerta">🛟 ' + e(textoCopiaVencida()) + '. <button type="button" class="btn peq" data-x="seg">Fazer a cópia de segurança</button></p>' : ''), extra: '<button type="button" class="btn" data-x="sem">Sair' + (CFG.prefs.pendente ? ' sem salvar no arquivo' : '') + '</button>' + (CFG.prefs.pendente ? '<button type="button" class="btn pri" data-x="com">Salvar e sair</button>' : '') });
   if (!v) return;
+  if (v._botao === 'seg') { await A.copiaSeg(); return A.sair(); }
   if (v._botao === 'com') { const ok = await fazerCopia(); if (!ok) return; }
   telaSaiu();
 };
@@ -1628,6 +1656,7 @@ async function entrarNoApp(tela) {
 /* ---------- PAINEL ---------- */
 T.painel = () => {
   const t = turmaAtual(); let h = '<h1>Olá' + (t && t.professora ? ', ' + e(t.professora.split(' ')[0]) : '') + '</h1>';
+  h += avisoCopiaPainel();
   if (!SE.demo && !CFG.cripto && !SE.memoria) h += '<div class="alerta verm">A senha está desligada: os dados das crianças ficam legíveis para quem usar este aparelho. <button class="btn peq" data-a="ligarSenha">Ligar a senha</button></div>';
   if (!t) return h + vazio('Nenhuma turma cadastrada ainda.', '<button class="btn pri" data-a="ir" data-t="turma" data-aba="turma">Cadastrar turma</button>');
   const al = alunosDaTurma(t.id), atasR = D.atas.filter(a => a.turmaId === t.id && a.estado !== 'finalizado'), bols = boletinsAtuais(t.id), bolInc = al.filter(a => { const b = bols[a.id]; return !b || statusBoletim(b).incompleto; });
@@ -1684,6 +1713,7 @@ function formAluno(a, t) {
   if (m.id) h += '<div class="cartao" data-rec="matriculas:' + m.id + '"><h3>Faltas em ' + t.ano + '</h3><p class="dica">Digite o total de faltas de cada período, ou use a tela <a href="#" data-a="ir" data-t="faltas">Faltas</a>, com a turma toda.</p><div class="grade" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">' + per.map((p, i) => campo(e(p), inp('faltas.' + i, (m.faltas || [])[i], 'number', 'min="0"'))).join('') + '</div></div>';
   const pms = poemasDe(a.id);
   h += '<div class="cartao"><h3>Poemas do ano</h3>' + (pms.length ? pms.map(x => '<details><summary style="cursor:pointer">' + x.turma.serie + 'º ano (' + x.turma.ano + '): <i>' + e(x.titulo || 'sem título') + '</i></summary><p class="mao" style="white-space:pre-line">' + e(x.texto) + '</p></details>').join('') : '<p class="dica">Nenhum poema ainda. Escreva o deste ano em Boletins → Poema do ano.</p>') + '</div>';
+  h += blocoDigitais('alunoId', a.id, { al: a.id }, 'Digitalizados da criança');
   return h;
 }
 A.voltarSub = () => { UI.sub = null; render(); };
@@ -1741,7 +1771,7 @@ function abaTurma() {
 }
 C_.escolaNome = async el => { CFG.escola.nome = el.value; await gravarConfig('escola'); };
 /* dados que pertencem a uma turma (para excluir) */
-const STORES_TURMA = [['matriculas', 'matrículas'], ['anotacoes', 'anotações'], ['atas', 'atas'], ['boletins', 'boletins'], ['perfisAluno', 'revisões de perfil'], ['perfisTurma', 'perfis da turma'], ['observacoes', 'observações do período'], ['conselhos', 'conselhos de classe'], ['documentos', 'planos, PEI e combinados'], ['reforcos', 'reforços'], ['vivencias', 'vivências'], ['eventos', 'eventos da turma']];
+const STORES_TURMA = [['matriculas', 'matrículas'], ['anotacoes', 'anotações'], ['atas', 'atas'], ['boletins', 'boletins'], ['perfisAluno', 'revisões de perfil'], ['perfisTurma', 'perfis da turma'], ['observacoes', 'observações do período'], ['conselhos', 'conselhos de classe'], ['documentos', 'planos, PEI e combinados'], ['reforcos', 'reforços'], ['vivencias', 'vivências'], ['eventos', 'eventos da turma'], ['digitais', 'digitalizados']];
 A.arquivarTurma = async d => { const x = IX.turmas[d.id]; x.arquivada = !x.arquivada; await salvar('turmas', x); render(); aviso(x.arquivada ? 'Turma arquivada: ela saiu do seletor e continua guardada.' : 'Turma de volta ao seletor.'); };
 A.excluirTurma = async d => {
   await descarregarFila(); const x = IX.turmas[d.id]; if (!x) return;
@@ -1922,6 +1952,7 @@ function editorAta(a) {
   const ms = D.marcacoes.filter(m => m.ataId === a.id);
   if (marcavel) h += '<div class="cartao"><h3>Trechos para os alunos <span class="dica">(a marcação não é impressa)</span></h3><p class="dica">Selecione uma frase ou um parágrafo em “Abertura”, “Texto geral”, “Deliberações” ou “Conclusão” e toque em “Marcar trecho”. Ele vira uma anotação no cadastro do aluno e, se você quiser, vai para o boletim.</p><button class="btn" data-a="marcarTrecho" data-id="' + a.id + '">🖍 Marcar trecho para aluno(s)</button>' + (ms.length ? '<table class="tabela" style="margin-top:.6rem"><tr><th>Trecho</th><th>Aluno(s)</th><th>Seção</th><th></th></tr>' + ms.map(m => '<tr><td><span class="marcado">' + e(m.trecho) + '</span></td><td>' + e((m.alunos || []).map(id => primeiroNome(IX.alunos[id])).join(', ')) + '</td><td>' + e(nomeSecao(m.secao, t && t.serie)) + '</td><td><button class="icone-btn" data-a="remMarca" data-id="' + m.id + '">✕</button></td></tr>').join('') + '</table>' : '') + '</div>';
   if ((a.emTempo || []).length) h += '<div class="cartao"><h3>Em tempo</h3>' + a.emTempo.map(x => '<p><span class="etq">' + dataBR(x.data) + '</span> <span class="mao">' + e(x.texto) + '</span></p>').join('') + '</div>';
+  h += blocoDigitais('ataId', a.id, { ata: a.id }, 'Digitalizados desta ata <span class="dica">(a ata assinada, anexos)</span>');
   h += '<div class="cartao"><h3>Prévia</h3><div class="previa" id="previaAta">' + previaAta(a) + '</div></div>';
   return h;
 }
@@ -2595,6 +2626,7 @@ function editorVivencia(v) {
     ck('todos', v.todos !== false, 'Toda a turma participou', 'data-rr="1"') + (v.todos === false ? '<div class="lista-sel">' + al.map(a => '<label class="ck"><input type="checkbox" data-c="vivPart" data-al="' + a.id + '"' + ((v.participantes || []).includes(a.id) ? ' checked' : '') + '> ' + e(a.nome) + '</label>').join('') + '</div>' : '') + '<div class="linha"><button class="btn" data-a="exportarUmaViv" data-id="' + v.id + '">Relatório da vivência</button></div></div>';
   const ns = D.anotacoes.filter(n => n.origem && n.origem.tipo === 'vivencia' && n.origem.id === v.id);
   h += '<div class="cartao"><h3>Observações sobre as crianças</h3><p class="dica">Cada observação vira uma anotação no cadastro da criança, ligada a esta vivência.</p><button class="btn" data-a="obsViv" data-id="' + v.id + '">+ Observação para aluno(s)</button>' + (ns.length ? '<table class="tabela" style="margin-top:.6rem">' + ns.map(n => '<tr><td>' + e((n.alunos || []).map(id => primeiroNome(IX.alunos[id])).join(', ')) + '</td><td>' + (n.estrela ? '<span class="estrela">★</span> ' : '') + e((n.alunos || []).length === 1 ? substituir(n.texto, IX.alunos[n.alunos[0]], t) : n.texto) + '</td><td><button class="icone-btn" data-a="editarAnot" data-id="' + n.id + '">✎</button></td></tr>').join('') + '</table>' : '') + '</div>';
+  h += blocoDigitais('vivenciaId', v.id, { viv: v.id }, 'Fotos e documentos da vivência');
   return h;
 }
 C_.vivPart = (el) => { const v = IX.vivencias[UI.sub]; const s = new Set(v.participantes || []); if (el.checked) s.add(el.dataset.al); else s.delete(el.dataset.al); v.participantes = [...s]; salvarDepois('vivencias', v); };
@@ -3573,7 +3605,6 @@ A.refTodos = async () => {
   for (const s of seriesVisiveis()) { if (!epocasDaSerie(s).length) await carregarEpocasRef(s); if (!refAnualDe(s)) { await criarDoc('refAnual', { serie: s }); n++; } for (const c of epocasDaSerie(s)) if (!refEpocaDe(c.id)) { await criarDoc('refEpoca', { epocaId: c.id, serie: s }); n++; } }
   render(); aviso(n ? n + ' rascunho(s) montado(s) para os anos do 1º ao 9º.' : 'Todos os rascunhos já existiam.');
 };
-C_.refSerie = el => { UI.filtro.refSerie = el.value; render(); };
 A.refAnualNovo = async d => { const x = await criarDoc('refAnual', { serie: Number(d.s) }); UI.sub = x.id; render(); window.scrollTo(0, 0); };
 A.refEpocaNovo = async d => { const c = IX.curriculo[d.id], x = await criarDoc('refEpoca', { epocaId: c.id, serie: c.serie }); UI.sub = x.id; render(); window.scrollTo(0, 0); };
 
@@ -4156,7 +4187,7 @@ T.reunioes = () => {
 };
 function tabelaReunioes(xs) {
   return '<div class="rolagem"><table class="tabela"><tr><th>Data</th><th>Horário</th><th>Criança</th><th>Família</th><th>Convidado</th><th>Situação</th><th></th></tr>' + xs.map(r => { const a = IX.alunos[r.alunoId], ata = r.ataId && IX.atas[r.ataId];
-    return '<tr><td>' + dataBR(r.data) + '</td><td>' + e((r.hora || '') + (r.horaFim ? '–' + r.horaFim : '')) + '</td><td>' + e(a ? a.nome : '—') + '</td><td>' + e((r.resp || []).join(', ')) + '</td><td>' + e(r.convidado || '') + '</td><td><span class="etq ' + (r.situacao === 'realizada' ? 'fin' : r.situacao === 'cancelada' ? 'sig' : 'rasc') + '">' + rotSitReu(r.situacao) + '</span>' + (r.assunto ? '<br><span class="dica">' + e(r.assunto) + '</span>' : '') + '</td><td style="white-space:nowrap"><button class="btn peq" data-a="reuEditar" data-id="' + r.id + '">Editar</button><button class="btn peq" data-a="reuConvite" data-id="' + r.id + '">Convite</button><button class="btn peq" data-a="reuAta" data-id="' + r.id + '">' + (ata ? 'Abrir a ata' : 'Registrar ata') + '</button><button class="icone-btn" data-a="reuExcluir" data-id="' + r.id + '" title="Excluir" aria-label="Excluir">✕</button></td></tr>'; }).join('') + '</table></div>';
+    return '<tr><td>' + dataBR(r.data) + '</td><td>' + e((r.hora || '') + (r.horaFim ? '–' + r.horaFim : '')) + '</td><td>' + e(a ? a.nome : '—') + '</td><td>' + e((r.resp || []).join(', ')) + '</td><td>' + e(r.convidado || '') + '</td><td><span class="etq ' + (r.situacao === 'realizada' ? 'fin' : r.situacao === 'cancelada' ? 'sig' : 'rasc') + '">' + rotSitReu(r.situacao) + '</span>' + (r.assunto ? '<br><span class="dica">' + e(r.assunto) + '</span>' : '') + '</td><td style="white-space:nowrap"><button class="btn peq" data-a="reuEditar" data-id="' + r.id + '">Editar</button><button class="btn peq" data-a="reuConvite" data-id="' + r.id + '">Convite</button><button class="btn peq" data-a="reuAta" data-id="' + r.id + '">' + (ata ? 'Abrir a ata' : 'Registrar ata') + '</button><button class="btn peq" data-a="reuDigitais" data-id="' + r.id + '" title="Fotos e documentos desta reunião">📎' + (D.digitais.some(x => x.reuniaoId === r.id) ? ' ' + D.digitais.filter(x => x.reuniaoId === r.id).length : '') + '</button><button class="icone-btn" data-a="reuExcluir" data-id="' + r.id + '" title="Excluir" aria-label="Excluir">✕</button></td></tr>'; }).join('') + '</table></div>';
 }
 A.reuMes = d => { const t = turmaAtual(); let [a, m] = UI.reuMes.split('-').map(Number); m += Number(d.v); if (m < 1) m = 1; if (m > 12) m = 12; UI.reuMes = a + '-' + String(m).padStart(2, '0'); UI.reuDia = null; render(); };
 A.reuDia = d => { UI.reuDia = d.d; render(); setTimeout(() => { const c = $('#reu-dia'); if (c) c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 40); };
@@ -4223,6 +4254,263 @@ REL.reunioes = t => {
   const ctr = '<div class="linha"><button class="btn" data-a="ir" data-t="reunioes">Abrir a agenda das reuniões</button><button class="btn" data-a="reuImprimir" data-v="lista">Imprimir em lista</button><button class="btn" data-a="reuImprimir" data-v="grade">Imprimir em grade, mês a mês</button></div>';
   const linhas = rs.map(r => [dataBR(r.data), (r.hora || '') + (r.horaFim ? '–' + r.horaFim : ''), (IX.alunos[r.alunoId] || {}).nome || '', (r.resp || []).join(', '), r.convidado || '', rotSitReu(r.situacao)]);
   return { controles: ctr, doc: docBase('Reunioes_familias_' + t.ano, 'Reuniões com as famílias — ' + rotuloTurma(t), rs.length ? [{ t: 'tabela', cab: ['Data', 'Horário', 'Criança', 'Família', 'Convidado', 'Situação'], linhas }] : [{ t: 'p', txt: 'Nenhuma reunião marcada.' }]), csv: { cab: ['Data', 'Horário', 'Criança', 'Família', 'Convidado', 'Situação'], linhas } };
+};
+
+</script>
+<script>/* cuidados.js */
+/* ==========================================================================
+   Tecelã — Cuidados com os dados: cópia de segurança com senha (para guardar
+   fora do computador) com lembrete, e desfazer nos campos de texto.
+
+   Cópia de segurança: arquivo .tecela com copiaSeg: true, sempre cifrado.
+   Com a senha da Tecelã ligada, usa a mesma chave. Sem ela, usa a "senha das
+   cópias" (criada na primeira cópia, com chave de recuperação), guardada só no
+   aparelho em CFG.prefs.copiaSegCripto / copiaSegDk, que NÃO vão no arquivo.
+   Lembrete: CFG.prefs.lembreteCopia dias (padrão 5) desde CFG.prefs.ultimaCopiaSeg.
+   ========================================================================== */
+'use strict';
+const diasDesdeCopia = () => { const u = CFG.prefs.ultimaCopiaSeg; if (!u) return null; return Math.floor((new Date(new Date().toDateString()) - new Date(new Date(u).toDateString())) / 864e5); };
+function copiaVencida() {
+  if (SE.demo || !D.turmas) return false;
+  if (!D.turmas.length && !D.alunos.length) return false; /* base vazia: nada a proteger ainda */
+  const n = Number(CFG.prefs.lembreteCopia); if (n === 0) return false; const lim = n > 0 ? n : 5, d = diasDesdeCopia();
+  return d === null || d >= lim;
+}
+const textoCopiaVencida = () => { const d = diasDesdeCopia(); return d === null ? 'Você ainda não fez uma cópia de segurança fora deste computador' : 'Faz ' + d + ' dia' + (d === 1 ? '' : 's') + ' que você não faz uma cópia de segurança fora deste computador'; };
+const avisoCopiaPainel = () => copiaVencida() ? '<div class="alerta amar">🛟 <b>' + e(textoCopiaVencida()) + '.</b> Se este computador estragar ou for perdido, a cópia guardada em outro lugar é o que salva o seu trabalho. <button class="btn peq pri" data-a="copiaSeg">Fazer a cópia de segurança</button></div>' : '';
+const usaSenhaDaTecela = () => !!(CFG.cripto && SE.dk);
+async function chaveDasCopias() {
+  if (usaSenhaDaTecela()) return { dk: SE.dk, cripto: CFG.cripto };
+  if (CFG.prefs.copiaSegCripto && CFG.prefs.copiaSegDk) return { dk: ub64(CFG.prefs.copiaSegDk), cripto: CFG.prefs.copiaSegCripto };
+  if (!temCripto()) { await informar('Criptografia indisponível', '<p>Este navegador não oferece a criptografia necessária para proteger a cópia com senha. Use uma versão recente do Chrome, Edge, Firefox ou Safari.</p>'); return null; }
+  const v = await definirSenha('Senha das cópias de segurança', 'A cópia de segurança vai para fora deste computador (pendrive, nuvem, e-mail). Por isso ela é sempre protegida por senha, mesmo que a Tecelã seja usada sem senha aqui. Crie a senha das cópias: ela será pedida só para abrir uma cópia.');
+  if (!v) return null;
+  const dk = crypto.getRandomValues(new Uint8Array(32)), chave = novaChave(), a = await embrulhar(dk, v.s1), b = await embrulhar(dk, normChave(chave));
+  await prefs({ copiaSegCripto: { s1: a.s, w1: a.w, s2: b.s, w2: b.w, dica: v.dica.trim() }, copiaSegDk: b64(dk) });
+  await mostrarChave(chave);
+  return { dk, cripto: CFG.prefs.copiaSegCripto };
+}
+A.copiaSeg = async () => {
+  if (SE.demo) return aviso('O modelo de demonstração não faz cópia de segurança.');
+  await descarregarFila();
+  const ok = await dlg({ titulo: '🛟 Cópia de segurança', ok: 'Fazer a cópia', corpo: '<p>A cópia de segurança é um arquivo à parte, <b>protegido por senha</b>, com todo o seu trabalho. Ela serve para o dia em que este computador estragar, for roubado ou for formatado.</p><p><b>Guarde-a fora deste computador:</b> num pendrive, na pasta do Google Drive ou do OneDrive, ou mande para o seu próprio e-mail.</p>' + (usaSenhaDaTecela() ? '<p class="dica">Ela usa a mesma senha da Tecelã.</p>' : CFG.prefs.copiaSegCripto ? '<p class="dica">Ela usa a senha das cópias de segurança, que você já criou.</p>' : '<p class="dica">Na primeira vez, você cria a senha das cópias e recebe uma chave de recuperação.</p>') });
+  if (!ok) return false;
+  const ch = await chaveDasCopias(); if (!ch) return false;
+  const txt = await pacoteCopia({ dk: ch.dk, cripto: ch.cripto, copiaSeg: true }), nome = 'Tecela_COPIA_' + nomeArq(CFG.escola.nome || 'turma') + '_' + carimbo() + '.tecela';
+  let feito = false, onde = '';
+  /* no celular: compartilhar direto para o Drive, o OneDrive, o e-mail ou o WhatsApp */
+  if ((ANDROID || APPLE_TOQUE) && navigator.canShare) {
+    try { const f = new File([txt], nome, { type: 'application/octet-stream' }); if (navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: 'Cópia de segurança da Tecelã' }); feito = true; onde = 'compartilhada'; } } catch (x) { if (x && x.name === 'AbortError') return aviso('A cópia não foi feita: o compartilhamento foi cancelado.'); }
+  }
+  if (!feito) { const r = await salvarComo(nome, txt, 'application/json', 'Cópia de segurança da Tecelã'); if (!r) { aviso('A cópia não foi feita: a janela de salvar foi cancelada.'); return false; } feito = true; onde = r.escolheu ? 'salva como ' + r.nome : 'salva na pasta de downloads: ' + r.nome; }
+  await prefs({ ultimaCopiaSeg: new Date().toISOString() }); render();
+  await informar('Cópia de segurança feita', '<p>Cópia ' + e(onde) + '.</p><p><b>Agora, leve-a para fora deste computador</b>, se ainda não estiver:</p><ul><li>copie para um <b>pendrive</b>, ou</li><li>arraste para a pasta do <b>Google Drive</b> ou do <b>OneDrive</b>, ou</li><li>envie para o seu próprio <b>e-mail</b>, como anexo.</li></ul><p class="dica">Para abrir a cópia, use “Abrir um arquivo da Tecelã” e a senha ' + (usaSenhaDaTecela() ? 'da Tecelã' : 'das cópias') + ' (ou a chave de recuperação). A próxima lembrança vem em ' + (Number(CFG.prefs.lembreteCopia) || 5) + ' dias.</p>');
+  return true;
+};
+/* no primeiro Salvar, uma explicação única sobre o arquivo e a cópia em outro lugar */
+async function explicarCopiaUmaVez() {
+  if (CFG.prefs.explicouCopia || SE.demo) return; await prefs({ explicouCopia: true });
+  await informar('O seu arquivo foi salvo', '<p>O arquivo <b>.tecela</b> guarda todo o seu trabalho. Use <b>💾 Salvar</b> sempre que terminar.</p><p>Mas um arquivo só, num computador só, se perde junto com ele. Por isso, de vez em quando, faça também uma <b>🛟 cópia de segurança</b> e guarde fora deste computador (pendrive, Google Drive, OneDrive ou o seu e-mail). A Tecelã lembra você a cada ' + (Number(CFG.prefs.lembreteCopia) || 5) + ' dias.</p><p class="dica">Dica: se o seu computador tem a pasta do Google Drive ou do OneDrive, salve o arquivo de trabalho dentro dela: assim ele ganha uma cópia na nuvem sozinho.</p>');
+}
+/* Ajustes */
+function cartaoCopiaSeg() {
+  const u = CFG.prefs.ultimaCopiaSeg;
+  return '<div class="cartao" id="m-copiaseg-aj"><h3>🛟 Cópia de segurança</h3><p>' + (u ? 'Última cópia de segurança: <b>' + new Date(u).toLocaleString('pt-BR') + '</b>.' : 'Nenhuma cópia de segurança feita ainda.') + ' A cópia é sempre protegida por senha (' + (usaSenhaDaTecela() ? 'a mesma da Tecelã' : CFG.prefs.copiaSegCripto ? 'a senha das cópias' : 'você cria a senha das cópias na primeira vez') + ') e deve ser guardada fora deste computador.</p>' +
+    '<div class="linha"><button class="btn pri" data-a="copiaSeg">Fazer a cópia de segurança</button>' + (!usaSenhaDaTecela() && CFG.prefs.copiaSegCripto ? '<button class="btn" data-a="trocarSenhaCopias">Trocar a senha das cópias</button>' : '') + '</div>' +
+    campo('Lembrar de fazer a cópia a cada (dias)', '<input type="number" min="0" max="60" data-c="lembreteCopia" value="' + (CFG.prefs.lembreteCopia == null ? 5 : Number(CFG.prefs.lembreteCopia)) + '" style="width:6rem">', 'Use 0 para não lembrar (não recomendado).') + '</div>';
+}
+C_.lembreteCopia = async el => { const n = Math.max(0, Math.min(60, Math.round(Number(el.value) || 0))); await prefs({ lembreteCopia: n }); aviso(n ? 'A Tecelã vai lembrar a cada ' + n + ' dias.' : 'Lembrete da cópia de segurança desligado.'); render(); };
+A.trocarSenhaCopias = async () => {
+  const c = CFG.prefs.copiaSegCripto; if (!c) return; let ok = false;
+  const v = await dlg({ titulo: 'Trocar a senha das cópias', ok: 'Continuar', corpo: campo('Senha atual das cópias', '<input type="password" name="s" autofocus>'), validar: async v => { try { await desembrulhar(c.s1, c.w1, v.s); ok = true; } catch (x) { return 'Senha incorreta.'; } } });
+  if (!v || !ok) return; const n = await definirSenha('Nova senha das cópias', 'Vale para as próximas cópias. As cópias antigas continuam abrindo com a senha antiga ou com a chave de recuperação, que continua a mesma.'); if (!n) return;
+  const a = await embrulhar(ub64(CFG.prefs.copiaSegDk), n.s1); await prefs({ copiaSegCripto: Object.assign({}, c, { s1: a.s, w1: a.w, dica: n.dica.trim() }) }); aviso('Senha das cópias alterada.');
+};
+
+/* ---------- DESFAZER NOS TEXTOS ----------
+   Cada alteração de um campo de texto (data-rec + data-b) entra num histórico da sessão:
+   ↶ (no alto) ou Ctrl+Z fora do campo desfaz a última; apagar um trecho grande de uma vez
+   mostra na hora o aviso “Trecho apagado · Desfazer”. */
+const HIST = []; const CAMPO_HIST = 'textarea[data-b], input[data-b]:not([type]), input[data-b][type=text]';
+function rotuloCampo(el) {
+  const l = el.closest('label.cp'); if (l && $('.r', l)) return $('.r', l).textContent.trim();
+  const s = el.closest('.secao-bol,.sec-doc,.cartao,details'); const h = s && s.querySelector('h4,h3,input.tit-sec,summary');
+  return h ? (h.value || h.textContent).trim().slice(0, 60) : 'texto';
+}
+function registroDoCampo(el) { const c = el.closest('[data-rec]'); if (!c) return null; const k = c.dataset.rec.indexOf(':'); return { store: c.dataset.rec.slice(0, k), id: c.dataset.rec.slice(k + 1), path: el.dataset.b }; }
+document.addEventListener('focusin', ev => { const el = ev.target; if (el.matches && el.matches(CAMPO_HIST)) { el._antes = el.value; el._ult = el.value; } });
+function anotarMudanca(el) {
+  if (el._antes == null || el.value === el._antes) return; const reg = registroDoCampo(el); if (!reg) return;
+  HIST.push(Object.assign(reg, { antes: el._antes, depois: el.value, rot: rotuloCampo(el), tela: UI.tela, sub: UI.sub, quando: new Date() })); if (HIST.length > 60) HIST.shift();
+  el._antes = el.value;
+}
+document.addEventListener('change', ev => { const el = ev.target; if (el.matches && el.matches(CAMPO_HIST)) anotarMudanca(el); }, true);
+document.addEventListener('focusout', ev => { const el = ev.target; if (el.matches && el.matches(CAMPO_HIST)) anotarMudanca(el); }, true);
+/* apagou um trecho grande de uma vez (um parágrafo, por exemplo): oferece desfazer na hora */
+document.addEventListener('input', ev => {
+  const el = ev.target; if (!el.matches || !el.matches(CAMPO_HIST)) return;
+  const antes = el._ult == null ? el.value : el._ult; el._ult = el.value;
+  if (antes.length - el.value.length >= 40) { const guardado = antes; aviso('Trecho apagado.', 'Desfazer', () => { if (el.isConnected) { el.value = guardado; el._ult = guardado; vincular(el, false); el.focus(); } else { const reg = registroDoCampo(el) || {}; const r = reg.store && IX[reg.store] && IX[reg.store][reg.id]; if (r) { setP(r, reg.path, guardado); salvar(reg.store, r); render(); } } aviso('Trecho de volta.'); }); }
+});
+const valorEm = (o, p) => p.split('.').reduce((x, k) => x == null ? x : x[k], o);
+async function aplicarVersao(h, valor) {
+  const r = IX[h.store] && IX[h.store][h.id]; if (!r) return aviso('Esse registro não existe mais.');
+  if (bloqueado(h.store, r)) return aviso('Esse documento está finalizado e não muda mais.');
+  const atual = valorEm(r, h.path); setP(r, h.path, valor); await salvar(h.store, r);
+  HIST.push(Object.assign({}, h, { antes: atual == null ? '' : String(atual), depois: valor, quando: new Date(), refeito: true }));
+  render();
+}
+A.desfazerTexto = async () => {
+  const a = document.activeElement; if (a && a.matches && a.matches(CAMPO_HIST)) anotarMudanca(a);
+  const h = HIST.pop(); if (!h) return aviso('Nada para desfazer nesta sessão.');
+  const r = IX[h.store] && IX[h.store][h.id]; if (!r) return aviso('Esse registro não existe mais.');
+  if (bloqueado(h.store, r)) return aviso('Esse documento está finalizado e não muda mais.');
+  setP(r, h.path, h.antes); await salvar(h.store, r); render();
+  aviso('Desfeito: ' + h.rot + '.', 'Histórico', () => A.historicoTextos());
+};
+A.historicoTextos = async () => {
+  if (!HIST.length) return informar('Histórico dos textos', '<p>Nenhuma alteração de texto nesta sessão.</p>');
+  const xs = HIST.map((h, i) => [h, i]).reverse().slice(0, 30), cort = s => { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > 90 ? s.slice(0, 90) + '…' : (s || '(vazio)'); };
+  const v = await dlg({ titulo: 'Histórico dos textos (desta sessão)', largo: true, ok: false, cancelar: 'Fechar', corpo: '<p class="dica">As alterações de texto desde que a Tecelã foi aberta, da mais recente para a mais antiga. “Voltar a esta versão” põe de volta o texto como estava antes daquela alteração (e isso também pode ser desfeito).</p><table class="tabela"><tr><th>Quando</th><th>Campo</th><th>Antes</th><th></th></tr>' + xs.map(([h, i]) => '<tr><td style="white-space:nowrap">' + h.quando.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + '</td><td>' + e(h.rot) + '</td><td class="dica">' + e(cort(h.antes)) + '</td><td><button type="button" class="btn peq" data-x="v' + i + '">Voltar a esta versão</button></td></tr>').join('') + '</table>' });
+  if (!v || !v._botao) return; const h = HIST[Number(v._botao.slice(1))]; if (h) { await aplicarVersao(h, h.antes); aviso('Versão anterior de volta: ' + h.rot + '.', 'Desfazer', () => A.desfazerTexto()); }
+};
+/* Ctrl+Z fora de um campo de texto desfaz pela Tecelã (dentro do campo, vale o desfazer do navegador) */
+document.addEventListener('keydown', ev => {
+  if ((ev.ctrlKey || ev.metaKey) && !ev.shiftKey && ev.key.toLowerCase() === 'z') { const a = document.activeElement; if (a && (a.matches('input, textarea, select') || a.isContentEditable)) return; if (!SE.app) return; ev.preventDefault(); A.desfazerTexto(); }
+});
+
+</script>
+<script>/* digitais.js */
+/* ==========================================================================
+   Tecelã — Digitalizados: fotos e documentos escaneados, em álbuns.
+   Store "digitais": { turmaId, titulo, album, tipo:'img'|'pdf', mime, dados (dataURL),
+   mini (miniatura), tamanho (bytes), largura, altura, data, obs,
+   alunoId, ataId, vivenciaId, reuniaoId }.
+   Fotos são reduzidas (lado maior até 1600 px, JPEG 0,72). PDF até 3 MB.
+   Nunca entram na partilha pedagógica (PARTILHA.nunca).
+   ========================================================================== */
+'use strict';
+const DIG_LADO = 1600, DIG_JPEG = 0.72, DIG_PDF_MAX = 3 * 1024 * 1024, DIG_ALERTA = 100 * 1024 * 1024;
+const tamanhoTxt = n => n >= 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+const bytesDataUrl = u => Math.round((u.length - u.indexOf(',') - 1) * 3 / 4);
+const totalDigitais = () => D.digitais.reduce((s, x) => s + (x.tamanho || 0), 0);
+const DIG_MEIO = 50 * 1024 * 1024;
+/* peso no arquivo .tecela (a foto vai como texto base64, cerca de 1/3 maior), para comparar com o resto dos dados */
+const pesoNoArquivo = x => (x.dados || '').length + (x.mini || '').length;
+function pesoDados() { const dig = D.digitais.reduce((s, x) => s + pesoNoArquivo(x), 0); let resto = 0; DADOS.forEach(s => { if (s !== 'digitais') try { resto += JSON.stringify(D[s]).length; } catch (x) { } }); return { dig, resto }; }
+const AVISO_PESO_DIG = 'Fotos e PDFs são, de longe, o que mais ocupa espaço na Tecelã: uma foto pesa mais que centenas de anotações. Esse peso vai para o seu arquivo e para cada cópia de segurança, e deixa salvar e copiar mais lentos. Inclua só o que precisa guardar aqui.';
+function lerComoDataUrl(f) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(f); }); }
+function carregarImagem(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('imagem ilegível')); i.src = src; }); }
+function reduzirImagem(img, lado, q) {
+  const k = Math.min(1, lado / Math.max(img.naturalWidth, img.naturalHeight)), w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(img, 0, 0, w, h);
+  return { url: c.toDataURL('image/jpeg', q), w, h };
+}
+/* prepara um arquivo escolhido: foto reduzida + miniatura; PDF conferido pelo tamanho */
+async function prepararDigital(f) {
+  const nome = f.name ? f.name.replace(/\.[^.]+$/, '') : 'Foto';
+  if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '')) {
+    if (f.size > DIG_PDF_MAX) return { erro: '“' + f.name + '” tem ' + tamanhoTxt(f.size) + '. O limite para PDF é 3 MB: reduza o arquivo (por exemplo, escaneando em preto e branco ou com menos resolução) ou fotografe as páginas.' };
+    const url = (await lerComoDataUrl(f)).replace(/^data:[^;,]*/, 'data:application/pdf');
+    return { titulo: nome, tipo: 'pdf', mime: 'application/pdf', dados: url, tamanho: f.size };
+  }
+  if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|gif|heic|bmp)$/i.test(f.name || '')) return { erro: '“' + f.name + '” não é foto nem PDF.' };
+  let img; try { img = await carregarImagem(await lerComoDataUrl(f)); } catch (x) { return { erro: 'Não foi possível ler “' + f.name + '”. Se for uma foto HEIC do iPhone, ela é convertida sozinha quando enviada pelo próprio iPhone; no computador, salve-a como JPEG.' }; }
+  const g = reduzirImagem(img, DIG_LADO, DIG_JPEG), m = reduzirImagem(img, 320, 0.7);
+  return { titulo: nome, tipo: 'img', mime: 'image/jpeg', dados: g.url, mini: m.url, tamanho: bytesDataUrl(g.url), largura: g.w, altura: g.h };
+}
+const opcoesAlunosDig = t => [['', '— nenhuma —']].concat(alunosDaTurma(t.id).map(a => [a.id, a.nome]));
+const opcoesAtasDig = t => [['', '— nenhuma —']].concat(D.atas.filter(a => a.turmaId === t.id).sort((a, b) => (b.data || '').localeCompare(a.data || '')).map(a => [a.id, nomeReuniao(a) + ' · ' + dataBR(a.data)]));
+const opcoesVivDig = t => [['', '— nenhuma —']].concat(D.vivencias.filter(v => v.turmaId === t.id).sort((a, b) => (b.data || '').localeCompare(a.data || '')).map(v => [v.id, v.titulo + ' · ' + dataBR(v.data)]));
+const opcoesReuDig = t => [['', '— nenhuma —']].concat(reunioesDaTurma(t).slice().reverse().map(r => [r.id, dataBR(r.data) + ' · ' + (IX.alunos[r.alunoId] ? primeiroNome(IX.alunos[r.alunoId]) : r.titulo || 'reunião')]));
+const selDig = (nome, val, ops) => '<select name="' + nome + '">' + ops.map(([v, r]) => '<option value="' + e(v) + '"' + (v === (val || '') ? ' selected' : '') + '>' + e(r) + '</option>').join('') + '</select>';
+function camposDig(t, x, varios) {
+  return (varios ? '' : campo('Título', '<input name="titulo" value="' + e(x.titulo || '') + '" autofocus>')) +
+    '<div class="duas">' + campo('Álbum', selDig('album', x.album || 'outros', opcoesLista('albuns', '', x.album))) + campo('Data', '<input type="date" name="data" value="' + e(x.data || hojeISO()) + '">') + '</div>' +
+    '<p class="dica" style="margin:.6rem 0 .2rem">Ligar a (opcional): o digitalizado aparece também nesses lugares.</p>' +
+    '<div class="duas">' + campo('Criança', selDig('alunoId', x.alunoId, opcoesAlunosDig(t))) + campo('Ata', selDig('ataId', x.ataId, opcoesAtasDig(t))) + '</div>' +
+    '<div class="duas">' + campo('Vivência', selDig('vivenciaId', x.vivenciaId, opcoesVivDig(t))) + campo('Reunião com a família', selDig('reuniaoId', x.reuniaoId, opcoesReuDig(t))) + '</div>' +
+    campo('Observação', '<textarea name="obs" style="min-height:3rem">' + e(x.obs || '') + '</textarea>');
+}
+const camposLigacao = v => ({ album: v.album, data: v.data, alunoId: v.alunoId || null, ataId: v.ataId || null, vivenciaId: v.vivenciaId || null, reuniaoId: v.reuniaoId || null, obs: (v.obs || '').trim() });
+/* incluir: d pode trazer a ligação já feita (al, ata, viv, reu, album) e camera=1 */
+A.digIncluir = async d => {
+  d = d || {}; const t = turmaAtual(); if (!t) return aviso('Cadastre uma turma primeiro.');
+  const fs = await escolherDigitais(d.camera === '1'); if (!fs || !fs.length) return;
+  const preparados = [], erros = [];
+  aviso('Preparando ' + fs.length + ' arquivo(s)…');
+  for (const f of fs) { try { const p = await prepararDigital(f); if (p.erro) erros.push(p.erro); else preparados.push(p); } catch (x) { erros.push('“' + (f.name || 'arquivo') + '”: ' + (x.message || 'erro')); } }
+  if (!preparados.length) return informar('Nada foi incluído', erros.map(x => '<p>' + e(x) + '</p>').join(''));
+  const um = preparados.length === 1, base = { titulo: um ? preparados[0].titulo : '', album: d.album || (d.ata ? 'atas' : d.viv ? 'vivencias' : 'outros'), data: hojeISO(), alunoId: d.al || '', ataId: d.ata || '', vivenciaId: d.viv || '', reuniaoId: d.reu || '' };
+  const tot = preparados.reduce((s, p) => s + p.tamanho, 0), noArq = preparados.reduce((s, p) => s + pesoNoArquivo(p), 0);
+  const v = await dlg({ titulo: um ? 'Incluir digitalizado' : 'Incluir ' + preparados.length + ' digitalizados', largo: true, ok: 'Incluir', corpo: (erros.length ? '<div class="alerta verm">' + erros.map(e).join('<br>') + '</div>' : '') + '<p class="dica">' + (um ? (preparados[0].tipo === 'img' ? 'Foto reduzida para ' + preparados[0].largura + '×' + preparados[0].altura + ' px' : 'PDF') + ', ' + tamanhoTxt(tot) : preparados.length + ' arquivos, ' + tamanhoTxt(tot) + ' no total. Os títulos ficam com o nome de cada arquivo (você pode mudar depois)') + '.</p><p class="alerta aviso-peso">' + (um ? 'Isto' : 'Estes arquivos') + ' acrescenta' + (um ? '' : 'm') + ' cerca de <b>' + tamanhoTxt(noArq) + '</b> ao seu arquivo e a cada cópia de segurança. ' + AVISO_PESO_DIG.split(': ')[0] + '. Inclua só o que precisa guardar aqui.</p>' + camposDig(t, base, !um) });
+  if (!v) return;
+  for (const p of preparados) await salvar('digitais', Object.assign({ turmaId: t.id }, p, camposLigacao(v), um ? { titulo: (v.titulo || '').trim() || p.titulo } : {}));
+  render(); aviso(preparados.length === 1 ? 'Digitalizado incluído.' : preparados.length + ' digitalizados incluídos.');
+  if (totalDigitais() > DIG_ALERTA) setTimeout(() => aviso('Os digitalizados já somam ' + tamanhoTxt(totalDigitais()) + '. O arquivo fica mais pesado para salvar e copiar.'), 4000);
+};
+function escolherDigitais(camera) {
+  return new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.multiple = !camera; i.accept = camera ? 'image/*' : 'image/*,application/pdf,.pdf'; if (camera) i.setAttribute('capture', 'environment'); i.style.display = 'none'; document.body.appendChild(i); i.addEventListener('change', () => { res([...i.files]); i.remove(); }); i.addEventListener('cancel', () => { res(null); i.remove(); }); i.click(); });
+}
+const TOQUE = ANDROID || APPLE_TOQUE;
+function botoesIncluirDig(lig, rot) {
+  const a = Object.entries(lig || {}).map(([k, v]) => ' data-' + k + '="' + e(v) + '"').join('');
+  return '<button class="btn" data-a="digIncluir"' + a + '>' + (rot || '+ Incluir foto ou PDF') + '</button>' + (TOQUE ? '<button class="btn" data-a="digIncluir" data-camera="1"' + a + '>📷 Fotografar</button>' : '');
+}
+const miniDig = x => '<button type="button" class="dig-mini" data-a="digVer" data-id="' + x.id + '" title="' + e(x.titulo) + '">' + (x.tipo === 'img' ? '<img src="' + (x.mini || x.dados) + '" alt="' + e(x.titulo) + '" loading="lazy">' : '<span class="dig-pdf">PDF</span>') + '<span class="dig-tit">' + e(x.titulo) + '</span><span class="dica">' + dataBR(x.data) + ' · ' + tamanhoTxt(x.tamanho || 0) + '</span></button>';
+/* bloco para os editores (ata, vivência, criança): os digitalizados ligados e o botão para incluir já ligado */
+function blocoDigitais(campoLig, id, lig, titulo) {
+  const xs = D.digitais.filter(x => x[campoLig] === id).sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+  return '<div class="cartao"><h3>' + (titulo || 'Digitalizados') + ' <span class="dica">(' + xs.length + ')</span></h3>' + (xs.length ? '<div class="dig-grade">' + xs.map(miniDig).join('') + '</div>' : '<p class="dica">Nenhuma foto ou documento ligado aqui.</p>') + '<div class="linha">' + botoesIncluirDig(lig, '+ Incluir aqui') + '</div></div>';
+}
+T.digitais = () => {
+  const t = turmaAtual(); if (!t) return '<h1>Digitalizados</h1>' + vazio('Cadastre uma turma primeiro.');
+  const f = UI.filtro, alb = f.digAlb || '', al = f.digAl || '', q = norm(f.digQ || '');
+  const todos = D.digitais.filter(x => x.turmaId === t.id), xs = todos.filter(x => (!alb || x.album === alb) && (!al || x.alunoId === al) && (!q || norm([x.titulo, x.obs].join(' ')).includes(q))).sort((a, b) => (b.data || '').localeCompare(a.data || '') || (b.criado || '').localeCompare(a.criado || ''));
+  const tot = totalDigitais(), pct = Math.min(100, tot / DIG_ALERTA * 100), faixa = tot > DIG_ALERTA ? ' cheio' : tot > DIG_MEIO ? ' meio' : '';
+  let h = '<h1>Digitalizados</h1><p>Fotos e documentos escaneados da turma (atas assinadas, a caderneta, bilhetes, trabalhos das crianças), organizados em álbuns. As fotos são reduzidas sozinhas para não pesar; PDF até 3 MB. Ficam no seu arquivo e na cópia de segurança, <b>nunca</b> na partilha pedagógica.</p>';
+  h += '<div class="linha">' + botoesIncluirDig({}, '+ Incluir fotos ou PDF') + '<span class="espaco"></span><a href="#" data-a="ir" data-t="cadastros" class="dica">Editar os álbuns</a></div>';
+  h += '<div class="cartao"><div class="dica">Espaço usado pelos digitalizados (todas as turmas): <b>' + tamanhoTxt(tot) + '</b>' + (tot > DIG_ALERTA ? ' · <b>acima de 100 MB</b>: o arquivo fica pesado para salvar e copiar. Apague o que não precisa mais, ou guarde os originais fora da Tecelã.' : tot > DIG_MEIO ? ' · <b>acima de 50 MB</b>: o arquivo já está ficando pesado.' : ' de 100 MB recomendados') + '</div><div class="medidor' + faixa + '"><span style="width:' + pct.toFixed(1) + '%"></span></div><p class="dica" style="margin:.5rem 0 0">' + AVISO_PESO_DIG + '</p></div>';
+  h += '<div class="linha">' + '<select data-c="digAlb" aria-label="Álbum"><option value="">Todos os álbuns (' + todos.length + ')</option>' + itensLista('albuns').map(i => { const n = todos.filter(x => x.album === i.chave).length; return '<option value="' + e(i.chave) + '"' + (alb === i.chave ? ' selected' : '') + '>' + e(i.nome) + ' (' + n + ')</option>'; }).join('') + '</select>' +
+    '<select data-c="digAl" aria-label="Criança"><option value="">Todas as crianças</option>' + alunosDaTurma(t.id).map(a => '<option value="' + a.id + '"' + (al === a.id ? ' selected' : '') + '>' + e(a.nome) + '</option>').join('') + '</select>' +
+    '<input type="search" data-c="digQ" placeholder="Procurar pelo título" value="' + e(f.digQ || '') + '"></div>';
+  if (!xs.length) return h + vazio(todos.length ? 'Nada neste filtro.' : 'Nenhum digitalizado em ' + e(rotuloTurma(t)) + '.');
+  if (alb) return h + '<div class="dig-grade">' + xs.map(miniDig).join('') + '</div>';
+  /* sem filtro de álbum: agrupado por álbum */
+  return h + itensLista('albuns', true).map(i => [i, xs.filter(x => x.album === i.chave)]).concat([[{ nome: 'Sem álbum' }, xs.filter(x => !IX.cadastros['albuns:' + x.album])]]).filter(([, ys]) => ys.length).map(([i, ys]) => '<h3>' + e(i.nome) + ' <span class="dica">(' + ys.length + ')</span></h3><div class="dig-grade">' + ys.map(miniDig).join('') + '</div>').join('');
+};
+C_.digAlb = el => { UI.filtro.digAlb = el.value; render(); };
+C_.digAl = el => { UI.filtro.digAl = el.value; render(); };
+C_.digQ = el => { UI.filtro.digQ = el.value; render(); };
+function blobDeDataUrl(u) { const k = u.indexOf(','), bin = atob(u.slice(k + 1)), b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return new Blob([b], { type: (u.slice(5, k).split(';')[0]) || 'application/octet-stream' }); }
+const nomeArqDig = x => nomeArq(x.titulo || 'digitalizado') + (x.tipo === 'pdf' ? '.pdf' : '.jpg');
+const ligacoesDig = x => [x.alunoId && IX.alunos[x.alunoId] ? 'Criança: ' + IX.alunos[x.alunoId].nome : '', x.ataId && IX.atas[x.ataId] ? 'Ata: ' + nomeReuniao(IX.atas[x.ataId]) + ' · ' + dataBR(IX.atas[x.ataId].data) : '', x.vivenciaId && IX.vivencias[x.vivenciaId] ? 'Vivência: ' + IX.vivencias[x.vivenciaId].titulo : '', x.reuniaoId && IX.eventos[x.reuniaoId] ? 'Reunião com a família: ' + dataBR(IX.eventos[x.reuniaoId].data) : ''].filter(Boolean);
+A.digVer = async d => {
+  const x = IX.digitais[d.id]; if (!x) return; let z = 1;
+  const lig = ligacoesDig(x);
+  const v = await dlg({ titulo: x.titulo, largo: true, ok: false, cancelar: 'Fechar', corpo: '<p class="dica">' + e(nomeItem('albuns', x.album) || 'Sem álbum') + ' · ' + dataBR(x.data) + ' · ' + tamanhoTxt(x.tamanho || 0) + (x.largura ? ' · ' + x.largura + '×' + x.altura + ' px' : '') + '</p>' + (lig.length ? '<p class="dica">' + lig.map(e).join(' · ') + '</p>' : '') + (x.obs ? '<p>' + e(x.obs) + '</p>' : '') +
+    (x.tipo === 'img' ? '<div class="linha"><button type="button" class="btn peq" id="zMenos" aria-label="Diminuir">−</button><button type="button" class="btn peq" id="zMais" aria-label="Aumentar">+</button><button type="button" class="btn peq" id="zAjustar">Ajustar à janela</button></div><div class="dig-ver"><img id="digImg" src="' + x.dados + '" alt="' + e(x.titulo) + '"></div>' : '<p>Documento PDF. Use “Abrir em tamanho real” para ver as páginas no leitor de PDF do navegador.</p>'),
+    extra: '<button type="button" class="btn" data-x="apagar">Excluir</button><button type="button" class="btn" data-x="editar">Editar</button><button type="button" class="btn" data-x="baixar">Baixar</button><button type="button" class="btn pri" id="digAbrir">Abrir em tamanho real</button>',
+    aoAbrir: f => {
+      const img = $('#digImg', f), zoom = k => { z = Math.max(.25, Math.min(4, k)); img.style.width = (z * 100) + '%'; img.style.maxWidth = z > 1 ? 'none' : '100%'; };
+      if (img) { $('#zMais', f).onclick = () => zoom(z * 1.4); $('#zMenos', f).onclick = () => zoom(z / 1.4); $('#zAjustar', f).onclick = () => zoom(1); img.onclick = () => zoom(z > 1 ? 1 : 2); }
+      $('#digAbrir', f).onclick = () => { const u = URL.createObjectURL(blobDeDataUrl(x.dados)), w = window.open(u, '_blank'); if (!w) baixar(nomeArqDig(x), blobDeDataUrl(x.dados)); setTimeout(() => URL.revokeObjectURL(u), 60000); };
+    } });
+  if (!v) return;
+  if (v._botao === 'baixar') { baixar(nomeArqDig(x), blobDeDataUrl(x.dados)); return; }
+  if (v._botao === 'editar') return A.digEditar(d);
+  if (v._botao === 'apagar') return apagarComDesfazer('digitais', x.id, 'Digitalizado excluído.');
+};
+A.digEditar = async d => {
+  const x = IX.digitais[d.id], t = IX.turmas[x.turmaId] || turmaAtual(); if (!x || !t) return;
+  const v = await dlg({ titulo: 'Editar digitalizado', largo: true, ok: 'Salvar', corpo: camposDig(t, x, false) }); if (!v) return;
+  Object.assign(x, camposLigacao(v), { titulo: (v.titulo || '').trim() || x.titulo }); await salvar('digitais', x); render(); aviso('Digitalizado atualizado.');
+};
+/* reunião com a família: ver os ligados e incluir já ligado (à reunião e à criança) */
+A.reuDigitais = async d => {
+  const r = IX.eventos[d.id]; if (!r) return; const xs = D.digitais.filter(x => x.reuniaoId === r.id);
+  const v = await dlg({ titulo: 'Digitalizados da reunião de ' + dataBR(r.data), largo: true, ok: false, cancelar: 'Fechar', corpo: xs.length ? '<div class="dig-grade">' + xs.map(miniDig).join('') + '</div>' : '<p class="dica">Nenhuma foto ou documento ligado a esta reunião.</p>', extra: '<button type="button" class="btn pri" data-x="incluir">+ Incluir aqui</button>' });
+  if (v && v._botao === 'incluir') return A.digIncluir({ reu: r.id, al: r.alunoId || '' });
 };
 
 </script>
@@ -4554,6 +4842,7 @@ T.busca = () => {
   D.reforcos.filter(x => tem(x.topico) || tem(x.obs) || tem(nomeItem('componentes', x.componente))).forEach(x => r.push(['Reforço', nomesDe(x.alunos) + ' · ' + (x.datas || []).map(d => dataBR(d).slice(0, 5)).join(', '), trecho([rotRef(x), x.obs].join(' ')), 'abrirReforcoBusca', { id: x.id, tu: x.turmaId }]));
   D.contatos.filter(x => tem(x.assunto) || tem(x.texto) || tem(x.combinados)).forEach(x => r.push(['Contato com a família', nomesDe([x.alunoId]) + ' · ' + dataBR(x.data), trecho([x.assunto, x.texto, x.combinados].join(' ')), 'abrirContatoBusca', { id: x.id, tu: x.turmaId }]));
   D.repertorio.filter(x => tem(x.titulo) || tem(x.texto) || tem(x.autor)).forEach(x => r.push(['Repertório', nomeTipoRep(x.tipo), trecho([x.titulo, x.autor, x.texto].join(' ')), 'abrirRepBusca', { id: x.id, tu: x.turmaId }]));
+  D.digitais.filter(x => tem(x.titulo) || tem(x.obs)).forEach(x => r.push(['Digitalizado', x.titulo + ' · ' + dataBR(x.data), trecho(x.obs || nomeItem('albuns', x.album)), 'digVer', { id: x.id }]));
   D.curriculo.filter(c => tem(c.titulo) || tem(c.conteudos) || tem(c.objetivos)).forEach(c => r.push(['Currículo', c.serie + 'º ano · ' + c.titulo, trecho([c.conteudos, c.objetivos].join(' ')), 'ir', { t: 'curric', sub: c.id }]));
   const attrs = o => Object.entries(o).map(([k, v]) => 'data-' + k + '="' + e(v) + '"').join(' ');
   return '<h1>Buscar: “' + e(UI.filtro.busca) + '”</h1><p class="dica">' + r.length + ' resultado(s) em todas as turmas.' + (UI.voltarBusca ? ' <a href="#" data-a="ir" data-t="' + UI.voltarBusca + '">← Voltar</a>' : '') + '</p>' + (r.length ? '<div class="cartao rolagem"><table class="tabela">' + r.slice(0, 300).map(([tipo, tit, tx, a, o]) => '<tr class="clic" data-a="' + a + '" ' + attrs(o) + '><td><span class="etq">' + tipo + '</span></td><td><b>' + e(tit) + '</b><div class="dica">' + tx + '</div></td></tr>').join('') + '</table></div>' : vazio('Nada encontrado.'));
@@ -4624,6 +4913,7 @@ T.ajustes = () => {
   h += '<div class="cartao"><h3>Senha e segurança</h3>' + (SE.demo ? '<p class="dica">No modelo de demonstração não há senha.</p>' : CFG.cripto ? '<p>✔ Senha ligada: os dados deste aparelho e o arquivo .tecela estão criptografados (AES-256).</p><div class="linha"><button class="btn" data-a="trocarSenha">Alterar a senha</button><button class="btn perigo" data-a="desligarSenha">Desligar a senha</button></div>' : '<p class="alerta verm">Senha desligada.</p><button class="btn pri" data-a="ligarSenha">Ligar a senha</button>') +
     campo('Travar depois de quantos minutos sem uso', '<select data-c="inativ">' + [0, 5, 10, 15, 30, 60].map(n => '<option value="' + n + '"' + (Number(p.inativ) === n ? ' selected' : '') + '>' + (n ? n + ' minutos' : 'Nunca') + '</option>').join('') + '</select>', 'Vale quando a senha está ligada.') + '</div>';
   h += '<div class="cartao" id="m-arquivo"><h3>Arquivo</h3>' + (SE.demo ? '<p class="dica">O modelo de demonstração não é salvo em arquivo.</p>' : '<p>Arquivo: <b>' + e(p.arquivoNome || 'ainda não salvo') + '</b>' + (p.ultimaCopia ? ' · salvo em ' + new Date(p.ultimaCopia).toLocaleString('pt-BR') : '') + (p.pendente ? ' · <b>há alterações não salvas no arquivo</b>' : '') + '</p><div class="linha"><button class="btn pri" data-a="copia">💾 Salvar</button><button class="btn" data-a="guardarNovo">Salvar como novo arquivo</button><button class="btn" data-a="restaurarAjustes">Abrir outro arquivo</button></div><label class="ck"><input type="checkbox" data-c="copiaNova"' + (p.copiaNova ? ' checked' : '') + '> <span>Salvar sempre como um arquivo novo, com data e hora (mantém o histórico de cópias)</span></label><p class="dica">O arquivo .tecela guarda tudo: turmas, crianças, anotações, observações, atas, boletins, perfis, conselhos, calendário e biblioteca. O nome do arquivo leva a data e a hora em que foi salvo, por exemplo <i>Tecela_Escola_2026-11-05_14h32.tecela</i>. Nos navegadores que permitem (Chrome e Edge no computador), “Salvar” grava no mesmo arquivo e atualiza a data e a hora no nome, quando o navegador deixa renomear; nos outros, cria uma cópia nova na pasta de downloads. Com a senha ligada, o arquivo também é criptografado e só abre com a mesma senha ou com a chave de recuperação. Use-o também para levar os dados a outro aparelho.</p>') + '</div>';
+  if (!SE.demo) h += cartaoCopiaSeg();
   { const nr = recebidas().length; h += '<div class="cartao" id="m-partilha-aj"><h3>Partilha pedagógica</h3><p>Compartilhe com outro educador planejamentos, repertório, biblioteca própria, modelos, comunicados, vivências e festas, <b>sem nenhum dado de crianças, famílias, professoras ou da escola</b>. E receba o material de colegas sem que nada do seu seja alterado.</p><div class="linha"><button class="btn" data-a="ptCompartilhar">Compartilhar planejamentos</button><button class="btn" data-a="ptReceber">Receber partilha</button><button class="btn" data-a="ir" data-t="partilha">Material recebido' + (nr ? ' (' + nr + ')' : '') + '</button></div><p class="dica">O arquivo da partilha (.tecela-partilha) é diferente do arquivo de trabalho: ele não serve como cópia de segurança e nunca substitui dados.</p></div>'; }
   h += '<div class="cartao"><h3>Ano letivo e documentos</h3>' + campo('Períodos para as faltas', '<input data-c="periodos" value="' + e((p.periodos || []).join(', ')) + '">', 'Separe por vírgulas. Ex.: 1º bimestre, 2º bimestre, 3º bimestre, 4º bimestre') + '<div class="duas">' + campo('Formato padrão das atas', '<select data-c="ataFormato"><option value="moderno"' + (p.ataFormato !== 'tradicional' ? ' selected' : '') + '>Moderno (parágrafos)</option><option value="tradicional"' + (p.ataFormato === 'tradicional' ? ' selected' : '') + '>Tradicional (texto corrido)</option></select>') + campo('Guardar egressos por (anos)', '<input type="number" min="1" data-c="prazoEgressos" value="' + (p.prazoEgressos || 5) + '">') + '</div>' + campo('Períodos da observação e do conselho de classe', '<select data-c="periodoObs">' + [['anual', 'Anual (1 por ano)'], ['semestral', 'Semestral (2 por ano)'], ['trimestral', 'Trimestral (3 por ano)'], ['bimestral', 'Bimestral (4 por ano)']].map(([k, n]) => '<option value="' + k + '"' + ((p.periodoObs || 'semestral') === k ? ' selected' : '') + '>' + n + '</option>').join('') + '</select>', 'Mudar a divisão não apaga nada: as observações já feitas continuam guardadas com o período em que foram feitas.') + '<label class="ck"><input type="checkbox" data-c="bnccComputacao"' + (p.bnccComputacao !== false ? ' checked' : '') + '> <span>Incluir a <b>Computação</b> (complemento da BNCC de 2022, 83 habilidades do 1º ao 9º ano) na consulta, nas sugestões e na comparação do currículo</span></label></div>';
   h += cartaoFontes(p);
@@ -4638,6 +4928,8 @@ T.ajustes_pos = async () => {
   const el = $('#armaz'); if (!el) return; let t = SE.memoria ? 'Modo computador de terceiros: os dados estão só na memória.' : DB ? 'Dados guardados no IndexedDB deste navegador.' : 'Este navegador não permitiu guardar dados.';
   try { if (navigator.storage) { const p = navigator.storage.persisted ? await navigator.storage.persisted() : false, est = navigator.storage.estimate ? await navigator.storage.estimate() : null; t += ' Armazenamento persistente: ' + (p ? 'sim (o navegador não apaga por falta de espaço).' : 'não concedido (salve o arquivo com frequência).') + (est ? ' Em uso: ' + (est.usage / 1048576).toFixed(1) + ' MB.' : ''); } } catch (x) { }
   el.textContent = t;
+  /* de onde vem o peso: os digitalizados costumam ser quase tudo */
+  { const ant = $('#armazPeso'); if (ant) ant.remove(); const pd = pesoDados(), tot = pd.dig + pd.resto || 1; el.insertAdjacentHTML('afterend', '<p class="dica" id="armazPeso">No seu arquivo .tecela: <b>Digitalizados ' + tamanhoTxt(pd.dig) + '</b> (' + Math.round(pd.dig / tot * 100) + '%) · Todo o resto ' + tamanhoTxt(pd.resto) + '. Fotos e PDFs são o que mais ocupa espaço. <a href="#" data-a="ir" data-t="digitais">Ver os digitalizados</a></p>'); }
 };
 /* ---------- fontes dos documentos impressos: as da lista que existem neste aparelho, as do computador (Chrome) ou digitada ---------- */
 const FONTES_LISTA = ['Times New Roman', 'Georgia', 'Garamond', 'EB Garamond', 'Book Antiqua', 'Palatino Linotype', 'Cambria', 'Constantia', 'Baskerville', 'Liberation Serif', 'DejaVu Serif', 'Lora', 'Merriweather', 'Arial', 'Calibri', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Segoe UI', 'Helvetica', 'Gill Sans', 'Century Gothic', 'Candara', 'Liberation Sans', 'DejaVu Sans', 'Nunito', 'Poppins', 'Open Sans', 'Roboto', 'Comic Sans MS', 'Segoe Print', 'Segoe Script', 'Bradley Hand', 'Caveat', 'Dancing Script', 'Monotype Corsiva', 'Lucida Handwriting', 'Kristen ITC'];
@@ -4707,6 +4999,7 @@ A.manualEm = d => { const id = { 'm-ajustes': 'm-copia', 'm-busca': 'm-menu', 'm
    classificação. Ao criar uma coleção ou um campo novo, classifique aqui.
    ========================================================================== */
 'use strict';
+/* campos técnicos de todo registro: não precisam de classificação (o teste-partilha os aceita em qualquer coleção) */
 const PT_META = ['id', 'criado', 'alterado', 'partilha'];
 const PARTILHA = {
   pode: {
@@ -4722,7 +5015,7 @@ const PARTILHA = {
       info: { vai: ['programacao', 'vestimenta', 'alimentacao', 'cardapio', 'compras', 'percurso', 'adicionais'], fica: ['endereco', 'contato', 'concentracao', 'saida', 'chegada', 'turmasDatas', 'adultos', 'orcamento', 'pagamento', 'documentacao'] } }
   },
   /* coleções que nunca saem numa partilha */
-  nunca: ['config', 'timbrado', 'turmas', 'alunos', 'matriculas', 'anotacoes', 'atas', 'marcacoes', 'boletins', 'perfisAluno', 'perfisTurma', 'cadastros', 'eventos', 'tarefas', 'observacoes', 'conselhos', 'reforcos', 'contatos'],
+  nunca: ['config', 'timbrado', 'turmas', 'alunos', 'matriculas', 'anotacoes', 'atas', 'marcacoes', 'boletins', 'perfisAluno', 'perfisTurma', 'cadastros', 'eventos', 'tarefas', 'observacoes', 'conselhos', 'reforcos', 'contatos', 'digitais'],
   /* dos ajustes, só as festas personalizadas */
   prefs: ['festas']
 };
@@ -5149,7 +5442,7 @@ A.impConfirmar = async () => {
 const MANUAL_HTML = `
 <p>Este manual funciona sem internet. O botão <b>?</b> no alto de cada tela abre a parte correspondente. Use “Imprimir esta página” para ter uma cópia em papel ou em PDF.</p>
 <h3>Sumário</h3>
-<ol><li><a href="#m-inicio">Primeiros passos</a></li><li><a href="#m-menu">O menu, os atalhos e o Painel</a></li><li><a href="#m-turma">Escola, turma e crianças</a></li><li><a href="#m-anot">Anotações</a></li><li><a href="#m-frases">Frases prontas</a></li><li><a href="#m-obs">Observação do período</a></li><li><a href="#m-faltas">Faltas</a></li><li><a href="#m-atas">Atas</a></li><li><a href="#m-bol">Boletim Descritivo</a></li><li><a href="#m-poema">Poema do ano</a></li><li><a href="#m-conselho">Conselho de classe</a></li><li><a href="#m-perfis">Perfil do aluno</a></li><li><a href="#m-relat">Relatórios</a></li><li><a href="#m-viv">Vivências</a></li><li><a href="#m-agenda">Calendário</a></li><li><a href="#m-tarefas">Tarefas e lembretes</a></li><li><a href="#m-curric">Currículo e BNCC</a></li><li><a href="#m-biblio">Biblioteca Waldorf</a></li><li><a href="#m-planej">Planejamento</a></li><li><a href="#m-pei">PEI – PDI — Plano Educacional Individualizado</a></li><li><a href="#m-reforco">Reforço escolar</a></li><li><a href="#m-combinados">Combinados da turma</a></li><li><a href="#m-acomp">Acompanhamento: contatos, entrevista e estudo de criança</a></li><li><a href="#m-comunic">Comunicados às famílias</a></li><li><a href="#m-repert">Repertório da turma</a></li><li><a href="#m-ano">Ano letivo: dias, festas e materiais</a></li><li><a href="#m-cadastros">Cadastros</a></li><li><a href="#m-atencao">Pontos de atenção</a></li><li><a href="#m-importar">Importar boletins anteriores</a></li><li><a href="#m-timbrado">Papel timbrado, exportar e enviar</a></li><li><a href="#m-copia">Salvar o arquivo</a></li><li><a href="#m-partilha">Partilha pedagógica</a></li><li><a href="#m-virada">Virada do ano letivo</a></li><li><a href="#m-seguranca">Segurança e LGPD</a></li><li><a href="#m-faq">Perguntas frequentes</a></li></ol>
+<ol><li><a href="#m-inicio">Primeiros passos</a></li><li><a href="#m-menu">O menu, os atalhos e o Painel</a></li><li><a href="#m-turma">Escola, turma e crianças</a></li><li><a href="#m-anot">Anotações</a></li><li><a href="#m-frases">Frases prontas</a></li><li><a href="#m-obs">Observação do período</a></li><li><a href="#m-faltas">Faltas</a></li><li><a href="#m-atas">Atas</a></li><li><a href="#m-bol">Boletim Descritivo</a></li><li><a href="#m-poema">Poema do ano</a></li><li><a href="#m-conselho">Conselho de classe</a></li><li><a href="#m-perfis">Perfil do aluno</a></li><li><a href="#m-relat">Relatórios</a></li><li><a href="#m-viv">Vivências</a></li><li><a href="#m-agenda">Calendário</a></li><li><a href="#m-tarefas">Tarefas e lembretes</a></li><li><a href="#m-curric">Currículo e BNCC</a></li><li><a href="#m-biblio">Biblioteca Waldorf</a></li><li><a href="#m-planej">Planejamento</a></li><li><a href="#m-pei">PEI – PDI — Plano Educacional Individualizado</a></li><li><a href="#m-reforco">Reforço escolar</a></li><li><a href="#m-combinados">Combinados da turma</a></li><li><a href="#m-acomp">Acompanhamento: contatos, entrevista e estudo de criança</a></li><li><a href="#m-comunic">Comunicados às famílias</a></li><li><a href="#m-repert">Repertório da turma</a></li><li><a href="#m-digitais">Digitalizados</a></li><li><a href="#m-ano">Ano letivo: dias, festas e materiais</a></li><li><a href="#m-cadastros">Cadastros</a></li><li><a href="#m-atencao">Pontos de atenção</a></li><li><a href="#m-importar">Importar boletins anteriores</a></li><li><a href="#m-timbrado">Papel timbrado, exportar e enviar</a></li><li><a href="#m-copia">Salvar o arquivo</a></li><li><a href="#m-partilha">Partilha pedagógica</a></li><li><a href="#m-virada">Virada do ano letivo</a></li><li><a href="#m-seguranca">Segurança e LGPD</a></li><li><a href="#m-faq">Perguntas frequentes</a></li></ol>
 
 <h2 id="m-inicio">1. Primeiros passos</h2>
 <p>Abra o arquivo <i>Tecela.html</i> com dois cliques. Ele funciona em qualquer navegador atual (Chrome, Edge, Firefox, Safari), sem internet. Mantenha o <i>Tecela.html</i> sempre no mesmo lugar: o navegador associa os dados ao local de onde ele é aberto.</p>
@@ -5169,17 +5462,24 @@ const MANUAL_HTML = `
 <ul><li><b>Dia a dia:</b> Painel, Anotações, Observação do período e Faltas.</li>
 <li><b>Documentos:</b> Boletins, Atas, Conselho de classe, Perfil do aluno, PEI – PDI, Acompanhamento e Relatórios.</li>
 <li><b>Planejar:</b> Planejamento, Repertório, Currículo e BNCC, Calendário e Tarefas.</li>
-<li><b>A turma:</b> Turma e alunos (com o horário semanal), Vivências, Reforço, Comunicados e Combinados.</li>
+<li><b>A turma:</b> Turma e alunos (com o horário semanal), Vivências, Reforço, Comunicados, Combinados e Digitalizados.</li>
 <li><b>Ajustar:</b> Biblioteca, Cadastros, Papel timbrado, Ajustes e arquivo, Ajuda.</li></ul>
 <p>Toque no nome de um grupo para recolhê-lo ou abri-lo. No fim do menu, <b>Recentes</b> mostra as últimas telas usadas. O menu fica na mesma posição quando você troca de tela.</p>
 <p>No celular, as telas mais usadas ficam numa barra embaixo (Painel, Anotações, Observação, Boletins); o botão <b>Mais</b> mostra todas as outras.</p>
-<p>No alto de todas as telas ficam o seletor da turma, o campo <b>Buscar…</b>, o <b>?</b> (ajuda daquela tela), <b>💾 Salvar</b> e <b>Sair</b>. Logo abaixo, uma linha discreta mostra se está tudo salvo neste aparelho e quando o arquivo foi salvo pela última vez; toque nela para entender a diferença (veja <a href="#m-copia">Salvar o arquivo</a>).</p>
+<p>No alto de todas as telas ficam o seletor da turma, o campo <b>Buscar…</b>, o <b>?</b> (ajuda daquela tela), <b>↶</b> (desfazer a última alteração de texto), <b>💾 Salvar</b>, <b>🛟 Cópia</b> (cópia de segurança) e <b>Sair</b>. Logo abaixo, uma linha discreta mostra se está tudo salvo neste aparelho e quando o arquivo foi salvo pela última vez; toque nela para entender a diferença (veja <a href="#m-copia">Salvar o arquivo</a>).</p>
 <h3>Atalhos que poupam trabalho</h3>
 <ul><li><b>✎ Anotar</b>, o botão vermelho no canto da tela: registra uma anotação sem sair de onde você está. Veja <a href="#m-anot">Anotações</a>.</li>
 <li><b>Buscar…:</b> digite uma palavra e tecle Enter. A Tecelã procura em crianças, anotações, atas, boletins (inclusive nos textos da turma e na citação), vivências, eventos, tarefas, conselhos, reforços, épocas do currículo, planejamentos, planos de época, combinados, PEIs e na Biblioteca, em todas as turmas, e também em contatos com as famílias e no repertório. Toque num resultado para abri-lo.</li>
-<li><b>Teclado:</b> <b>Ctrl+S</b> (ou ⌘S) salva o arquivo; <b>Ctrl+K</b> vai para a busca; <b>Alt+N</b> abre a anotação rápida.</li>
-<li><b>Desfazer:</b> depois de lançar ou apagar uma anotação, ou de apagar um evento ou uma tarefa, aparece embaixo, por alguns segundos, o botão “Desfazer”.</li>
+<li><b>Teclado:</b> <b>Ctrl+S</b> (ou ⌘S) salva o arquivo; <b>Ctrl+K</b> vai para a busca; <b>Alt+N</b> abre a anotação rápida; <b>Ctrl+Z</b> (ou ⌘Z) desfaz: dentro de um campo de texto, desfaz o que se acabou de digitar nele; fora dos campos, desfaz a última alteração de texto (veja <a href="#m-desfazer">Desfazer nos textos</a>).</li>
+<li><b>Desfazer:</b> depois de lançar ou apagar uma anotação, ou de apagar um evento, uma tarefa ou um digitalizado, aparece embaixo, por alguns segundos, o botão “Desfazer”. Para os textos, veja <a href="#m-desfazer">Desfazer nos textos</a>.</li>
 <li><b>Sugestões:</b> a Tecelã sugere a seção e o critério das anotações, rascunhos para o boletim, níveis do perfil e a ata do conselho. Tudo pode ser mudado: a decisão é sempre sua.</li></ul>
+<h3 id="m-desfazer">Desfazer nos textos</h3>
+<p>A Tecelã guarda, enquanto ela estiver aberta, cada alteração feita nos campos de texto (anotações, atas, boletins, perfis, planos e os demais). Assim dá para voltar atrás mesmo depois de sair do campo ou de trocar de tela:</p>
+<ul><li><b>↶</b>, no alto da tela, ou <b>Ctrl+Z</b> (⌘Z no Mac) fora de um campo de texto: desfaz a última alteração de texto, onde quer que ela tenha sido. Tocando de novo, desfaz a anterior, e assim por diante.</li>
+<li><b>Dentro de um campo</b>, Ctrl+Z é o desfazer do próprio navegador: volta o que se acabou de digitar naquele campo.</li>
+<li><b>Apagou um trecho grande sem querer</b> (um parágrafo, por exemplo)? Aparece na hora, embaixo, “Trecho apagado” com o botão <b>Desfazer</b>.</li>
+<li><b>Histórico dos textos:</b> depois de desfazer, o aviso traz o botão “Histórico”, com as alterações da sessão, da mais recente para a mais antiga, e “Voltar a esta versão” em cada uma.</li></ul>
+<p class="dica">O histórico vale para a sessão: ao fechar a Tecelã, ele recomeça. Atas e boletins finalizados não mudam pelo desfazer.</p>
 <h3 id="m-painel">O Painel</h3>
 <p>Mostra a turma, o seu arquivo (e se há alterações não salvas no arquivo), os botões de lançamento rápido (Anotar, Observar, Faltas e <b>Roteiro para substituto</b>), a <b>chamada</b> (toque no nome de quem faltou e a falta entra sozinha no total do período, em Faltas e no boletim; toque de novo para desfazer. Esqueceu um dia? Use ◀ ▶ ou escolha a data: a chamada vale para qualquer dia letivo do ano até hoje, e a falta entra no período daquela data. Dias sem aula aparecem bloqueados, com o motivo, e “Hoje” volta para a chamada do dia. Se o total de um período já tinha sido digitado à mão na tela Faltas, um aviso lembra de conferir, para não contar a mesma falta duas vezes), os <b>próximos dias</b> (eventos, reuniões, vivências, tarefas e aniversários das próximas duas semanas) e as <b>pendências</b>: crianças com poucas anotações no último mês, observação do período sem marcas, faltas de períodos já encerrados sem lançamento, crianças com mais de 20% de faltas, anotações marcadas para o conselho, atas em rascunho, boletins incompletos e perfis sem revisão há mais de um semestre. Cada pendência é um link para a tela onde resolvê-la. O Painel também avisa quem está chegando aos 9 anos (o Rubicão) ou aos 12.</p>
 
@@ -5424,13 +5724,22 @@ const MANUAL_HTML = `
 <li>O repertório acompanha a turma de ano em ano: no 4º ano você ainda vê o que a turma viveu no 1º, 2º e 3º.</li>
 <li>Os itens ligados a uma época entram no <b>Repertório da época</b> do plano de época; os da rotina diária entram também no <b>roteiro do substituto</b>.</li></ul>
 
-<h2 id="m-ano">26. Ano letivo: dias, festas e materiais</h2>
+<h2 id="m-digitais">26. Digitalizados</h2>
+<p>Fotos e documentos escaneados da turma (a ata assinada, a caderneta, bilhetes, comunicados da escola, trabalhos das crianças), organizados em <b>álbuns</b>. Fica em <b>A turma → Digitalizados</b>.</p>
+<ul><li><b>+ Incluir fotos ou PDF:</b> escolha um ou vários arquivos. No celular, <b>📷 Fotografar</b> abre a câmera.</li>
+<li><b>As fotos são reduzidas sozinhas</b> (o lado maior fica com 1600 pixels, em JPEG), o que dá cerca de 200 a 400 KB por foto, com boa leitura. <b>PDF até 3 MB</b>: acima disso, reduza o arquivo (escaneie em preto e branco ou com menos resolução) ou fotografe as páginas.</li>
+<li><b>Álbum, data, título e ligações:</b> cada digitalizado pode ser ligado a uma <b>criança</b>, a uma <b>ata</b>, a uma <b>vivência</b> ou a uma <b>reunião com a família</b>. Ele aparece também nesses lugares: na ficha da criança, no fim da ata, na vivência e no 📎 da reunião, onde “+ Incluir aqui” já vem ligado.</li>
+<li><b>Ver:</b> toque na miniatura. Há zoom (− e +, ou toque na imagem), “Abrir em tamanho real”, “Baixar”, “Editar” e “Excluir” (com Desfazer).</li>
+<li><b>Espaço:</b> fotos e PDFs são, de longe, o que mais ocupa espaço na Tecelã: uma foto pesa mais que centenas de anotações, e esse peso vai para o seu arquivo e para cada cópia de segurança. Ao incluir, a Tecelã mostra quanto o arquivo vai crescer. O medidor fica amarelo acima de 50 MB e vermelho acima de 100 MB, e Ajustes → Armazenamento mostra quanto do arquivo são digitalizados e quanto é todo o resto. Inclua só o que precisa guardar aqui.</li>
+<li>Os álbuns são editáveis em <b>Cadastros</b>. A busca encontra os digitalizados pelo título e pela observação.</li>
+<li><b>Sigilo:</b> os digitalizados ficam no seu arquivo e na cópia de segurança, com a mesma senha. <b>Nunca</b> entram na partilha pedagógica.</li></ul>
+<h2 id="m-ano">27. Ano letivo: dias, festas e materiais</h2>
 <p>Em <b>Planejamento → Ano letivo</b>:</p>
 <ul><li><b>Dias letivos e carga horária:</b> a Tecelã conta os dias letivos de cada período pelos <a href="#m-letivos">dias letivos do Calendário</a> (ou, enquanto eles não forem definidos, sem domingos, feriados e recessos, com os sábados letivos), a partir do início do ano letivo e até o último dia de aula (um evento com “fim das aulas” ou “término do ano letivo” no nome). As horas de cada dia vêm do horário semanal; onde não há horário, vale o número de horas que você informar. O total é comparado com os mínimos definidos pela legislação (hoje, 200 dias e 800 horas, pela LDB); se a legislação mudar, ou se a sua rede exigir outros números, mude em <b>Ajustes → Ano letivo</b>. Com os dias letivos definidos no Calendário, a frequência já usa esses números sozinha; sem eles, <b>Usar estes dias nas faltas e no boletim</b> leva os números para a tela Faltas e para o cálculo da frequência. Confira sempre com a secretaria.</li>
 <li><b>Festas do ano:</b> Festa da Colheita, Páscoa, Festa das Lanternas, São João, Micael, Festa da Primavera, Espiral do Advento e Auto de Natal, com datas sugeridas para o hemisfério sul (a da Páscoa é calculada). A lista é sua: <b>Editar</b> muda o nome, a data (fixa, ou ligada à Páscoa ou ao 1º domingo do Advento, com dias antes ou depois) e os passos da preparação (um por linha, com os dias antes da festa: “21: Ensaiar as canções”); <b>+ Festa</b> inclui uma festa da sua escola; <b>✕</b> exclui da lista (o que já está no calendário continua lá); “Voltar à lista original” desfaz as mudanças. <b>Colocar no calendário</b>: marque as festas e confira as datas; cada festa entra no calendário e cada passo da preparação (ensaiar as canções, comunicado às famílias, preparar os enfeites…) vira uma tarefa com prazo.</li>
 <li><b>Lista de materiais do ano:</b> uma sugestão montada pelo ano (flauta, tricô, crochê, bordado, compasso…) e pelas épocas do currículo, com um texto de apresentação para as famílias. Revise e envie; as partes com ↻ podem ser montadas de novo.</li></ul>
 
-<h2 id="m-cadastros">27. Cadastros</h2>
+<h2 id="m-cadastros">28. Cadastros</h2>
 <p>Em <b>Cadastros</b> você personaliza as listas usadas pela Tecelã. Escolha a lista nos botões do alto:</p>
 <ul><li>tipos de reunião (com as categorias de participantes e os subtipos; o tipo “Conselho de classe” já vem cadastrado), caráter da reunião, critérios do perfil, papéis no grupo, tipos de ponto de atenção, tipos de vivência, tipos de evento (com cor) e componentes do currículo (ligados ou não a uma área da BNCC, inclusive a Computação);</li>
 <li><b>Observação: blocos</b> (cada bloco com seu critério do perfil e sua seção do boletim) e <b>Observação: itens</b> (escolha o bloco no alto; cada item pode ter uma seção do boletim própria);</li>
@@ -5443,18 +5752,18 @@ const MANUAL_HTML = `
 <li>A coluna <b>Uso</b> mostra em quantos registros o item aparece. Toque no número para ver quais (por exemplo, “Reunião com as famílias nº 01 de 12/03/2026”).</li>
 <li>As <b>frases prontas</b> sempre podem ser excluídas: a frase é copiada para o texto da anotação, então as anotações que já a usaram continuam como estão.</li></ul>
 <p>As seções do boletim ficam em Boletins → Seções do ano, e os períodos das faltas e da observação em Ajustes.</p>
-<h2 id="m-atencao">28. Pontos de atenção</h2>
+<h2 id="m-atencao">29. Pontos de atenção</h2>
 <p>No cadastro da criança, “+ Ponto de atenção” registra saúde, alergias, visão e audição, sono, aspectos emocionais, aprendizagem, acompanhamento terapêutico, família e guarda, entre outros, com descrição, data de início e situação (ativo ou resolvido).</p>
 <p>São dados sensíveis pela LGPD (art. 11), por isso são <b>sigilosos por padrão</b>: aparecem para você no editor do boletim, no perfil e no pré-conselho, mas nunca são impressos no boletim, e só entram em relatórios exportados se você marcar. Desmarque “sigiloso” só quando a informação puder constar de documentos (uma alergia, por exemplo). Quando um ponto deixar de ser necessário, prefira marcar “Resolvido”, para manter o histórico.</p>
 
-<h2 id="m-importar">29. Importar boletins anteriores</h2>
+<h2 id="m-importar">30. Importar boletins anteriores</h2>
 <p>A Tecelã lê os boletins dos anos anteriores, em .docx, dentro do próprio app e sem internet: nada sai do aparelho.</p>
 <ol><li>Na tela inicial, use “Novo a partir de boletins anteriores”; ou, já dentro do app, Turma e alunos → “Importar boletins anteriores (.docx)”.</li>
 <li>Escolha os arquivos (pode escolher vários de uma vez).</li>
 <li>Confira o que foi lido em cada boletim: nome, gênero, série, letra, ano, professora e a seção de cada parágrafo. Corrija o que for preciso. Parágrafos que se repetem em vários boletins da mesma turma são reconhecidos como texto da turma.</li>
 <li>Confirme. As turmas, as crianças e os boletins (como rascunhos editáveis, com o poema) entram nos seus dados. Crianças já cadastradas com o mesmo nome não são duplicadas.</li></ol>
 
-<h2 id="m-timbrado">30. Papel timbrado, exportar e enviar</h2>
+<h2 id="m-timbrado">31. Papel timbrado, exportar e enviar</h2>
 <p><b>Papel timbrado:</b> escolha o logotipo, a posição, o cabeçalho, o rodapé, o tamanho do papel (A4 ou Ofício) e as margens. Os boletins podem usar o mesmo timbrado das atas ou um próprio.</p>
 <p><b>Fontes dos documentos impressos</b> (em Ajustes): escolha a fonte do texto, a dos títulos e a dos poemas. A lista mostra as fontes encontradas no aparelho; no Chrome do computador, “Ver todas as fontes deste computador” traz a lista completa, e “Usar outra fonte instalada” aceita o nome de qualquer fonte que esteja no aparelho. Valem para o PDF e o Word; as telas do app não mudam. No Word, o arquivo leva só o nome da fonte: quem abrir num computador sem ela verá outra.</p>
 <ul><li><b>PDF:</b> a Tecelã abre a janela de impressão. Escolha “Salvar como PDF” ou uma impressora.</li>
@@ -5462,7 +5771,7 @@ const MANUAL_HTML = `
 <li><b>Planilha (CSV):</b> em listas e relatórios com tabelas; abre no Excel, LibreOffice ou Google Planilhas.</li>
 <li><b>E-mail:</b> a Tecelã verifica a conexão. No celular e no tablet, abre o compartilhamento do sistema com o arquivo anexado. No computador, salva o arquivo e abre o seu e-mail com destinatário, assunto e texto prontos: arraste o arquivo para a mensagem e envie.</li></ul>
 
-<h2 id="m-copia">31. Salvar o arquivo</h2>
+<h2 id="m-copia">32. Salvar o arquivo</h2>
 <p id="m-ajustes">A Tecelã guarda o seu trabalho em dois lugares, e vale entender a diferença:</p>
 <ul><li><b>Neste aparelho, sozinha:</b> tudo o que você digita é gravado na hora, sem botão, no armazenamento do navegador (o IndexedDB). Por isso, ao sair sem salvar no arquivo, nada se perde de imediato: ao abrir a Tecelã de novo, neste mesmo navegador e a partir do mesmo <i>Tecela.html</i>, tudo estará lá. A linha discreta no alto da tela mostra quando isso aconteceu (“✓ Salvo neste aparelho às 10:32”).</li>
 <li><b>Mas essa cópia do navegador pode se perder</b> se os dados de navegação forem limpos (“limpar histórico”, “limpar dados dos sites”), se você usar janela anônima, trocar de navegador ou de computador, se o aparelho ficar sem espaço ou, no iPhone e no iPad, se a Tecelã ficar vários dias sem ser aberta (o Safari apaga os dados de sites pouco usados).</li>
@@ -5473,9 +5782,17 @@ const MANUAL_HTML = `
 <li><b>Ao sair:</b> o botão “Sair” oferece “Salvar e sair”. “Sair sem salvar no arquivo” mantém as alterações só neste navegador (veja acima). Se você fechar a aba direto, o navegador mostra o aviso “Sair do site?”. Na próxima abertura, se ficaram alterações fora do arquivo, a Tecelã pergunta se quer salvar.</li>
 <li>Com a senha ligada, o arquivo é criptografado e só abre com a mesma senha ou com a chave de recuperação. Arquivos de cópia antigos (.json) também abrem.</li>
 <li><b>No celular e no tablet:</b> o sistema não conhece a extensão .tecela (no Android ela aparece como “Arquivo em BIN”). Há uma limitação do Android: quando o <i>Tecela.html</i> é aberto pelo gerenciador de arquivos, o navegador abre a página como “content://” e não entrega à página o arquivo escolhido. Por isso, no Android, abra a Tecelã pelo endereço <b>marciowillians.github.io/tecela/Tecela.html</b>, no Chrome: assim o arquivo .tecela abre normalmente (escolha-o na pasta Downloads). No celular, “Salvar” baixa uma cópia nova do arquivo, em Downloads. Os dados digitados por esse endereço ficam guardados à parte dos do Tecela.html aberto no computador: para levar de um para o outro, use o arquivo .tecela. No iPhone e no iPad, o arquivo precisa estar no app Arquivos. Se escolher outro tipo de arquivo, a Tecelã avisa e nada é alterado.</li></ul>
-<p>Em <b>Ajustes</b> ficam também a senha e o tempo para travar, as <b>fontes dos documentos impressos</b>, os períodos das faltas, os <b>períodos da observação e do conselho</b> (anual, semestral, trimestral ou bimestral), a <b>Computação</b> na BNCC (ligada ou não), o <b>ano letivo</b> (mínimo de dias letivos e mínimo de horas, definidos pela legislação), os <b>anos mostrados</b> (o 9º ano fica oculto por padrão: na tradição Waldorf ele já é o início do ensino médio; pela legislação brasileira, faz parte do Ensino Fundamental), o formato das atas, o prazo de guarda dos egressos, o tema (claro ou escuro) e o tamanho da letra.</p>
+<p>Em <b>Ajustes</b> ficam também a senha e o tempo para travar, a <b>cópia de segurança</b> e o intervalo do lembrete, as <b>fontes dos documentos impressos</b>, os períodos das faltas, os <b>períodos da observação e do conselho</b> (anual, semestral, trimestral ou bimestral), a <b>Computação</b> na BNCC (ligada ou não), o <b>ano letivo</b> (mínimo de dias letivos e mínimo de horas, definidos pela legislação), os <b>anos mostrados</b> (o 9º ano fica oculto por padrão: na tradição Waldorf ele já é o início do ensino médio; pela legislação brasileira, faz parte do Ensino Fundamental), o formato das atas, o prazo de guarda dos egressos, o tema (claro ou escuro) e o tamanho da letra.</p>
 
-<h2 id="m-partilha">32. Partilha pedagógica</h2>
+<h3 id="m-copiaseg">🛟 Cópia de segurança</h3>
+<p>O arquivo de trabalho costuma ficar no mesmo computador da Tecelã. Se o computador estragar, for roubado ou formatado, os dois se perdem juntos. A <b>cópia de segurança</b> é um arquivo à parte, para guardar <b>fora deste computador</b>:</p>
+<ul><li>Use <b>🛟 Cópia</b>, no alto da tela, ou Ajustes → Cópia de segurança. O arquivo se chama <i>Tecela_COPIA_Escola_data_hora.tecela</i>.</li>
+<li><b>Ela é sempre protegida por senha.</b> Com a senha da Tecelã ligada, usa a mesma senha. Sem ela, na primeira cópia você cria a <b>senha das cópias de segurança</b> e recebe uma chave de recuperação; depois, a Tecelã usa essa senha sozinha. A senha das cópias fica só neste aparelho e nunca vai dentro do arquivo do “Salvar”.</li>
+<li><b>Onde guardar:</b> num pendrive, na pasta do Google Drive ou do OneDrive, ou no seu próprio e-mail, como anexo. No celular, a cópia abre a janela de compartilhar: escolha o Drive, o OneDrive ou o e-mail.</li>
+<li><b>Lembrete:</b> a cada 5 dias sem cópia, aparece um aviso amarelo no Painel e no alto da tela, e o “Sair” também lembra. O intervalo muda em Ajustes → Cópia de segurança (0 desliga, o que não é recomendado).</li>
+<li><b>Para abrir uma cópia:</b> na tela inicial, “Abrir um arquivo da Tecelã”, com a senha da cópia ou a chave de recuperação. A Tecelã pergunta se quer <b>continuar com senha</b> neste aparelho (recomendado) ou <b>usar sem senha</b>, como antes; nesse caso, a senha da cópia passa a ser a senha das cópias. A cópia aberta não vira o arquivo de trabalho: o próximo “Salvar” pergunta onde salvar.</li>
+<li>No primeiro “Salvar”, a Tecelã explica isso uma vez e sugere: se o computador tem a pasta do Google Drive ou do OneDrive, salvar o arquivo de trabalho dentro dela já dá a ele uma cópia na nuvem.</li></ul>
+<h2 id="m-partilha">33. Partilha pedagógica</h2>
 <p>A partilha leva para outra professora ou outro professor o seu <b>material pedagógico</b>, sem nenhum dado de pessoas ou da escola. O arquivo tem extensão própria, <i>.tecela-partilha</i>, e não é uma cópia de segurança: ele só acrescenta itens em quem recebe e nunca substitui nada. Fica em <b>Ajustes e arquivo → Partilha pedagógica</b>.</p>
 <h3>Para quem envia</h3>
 <ul><li><b>O que vai:</b> planejamentos anuais e planos de época, épocas do currículo, conteúdo programático que você adaptou, repertório, verbetes próprios ou editados da Biblioteca, modelos de boletim (as seções), modelos de comunicado, os textos das vivências (roteiro, vestimenta, alimentação, cardápio e outras orientações) e as festas do ano que você personalizou.</li>
@@ -5496,27 +5813,30 @@ const MANUAL_HTML = `
 <li>Ao final, um resumo mostra quantos itens entraram de cada tipo, quantos repetidos foram pulados, quantos ganharam “(recebido)” e onde encontrá-los.</li>
 <li><b>Desfazer:</b> em Material recebido, cada partilha tem o botão <b>Remover o que veio desta partilha</b>, que apaga de uma vez só os itens dela (inclusive o que você editou neles), sem tocar no seu material.</li>
 <li>Uma partilha não abre por “Abrir outro arquivo”, e uma cópia de segurança não abre por “Receber partilha”: a Tecelã avisa e explica qual caminho usar.</li></ul>
-<h2 id="m-virada">33. Virada do ano letivo</h2>
+<h2 id="m-virada">34. Virada do ano letivo</h2>
 <ol><li>Salve o arquivo.</li><li>Em Turma e alunos → Virada do ano, confira quem dará aula no novo ano.</li><li>Para cada criança, escolha: segue com a turma, retido (sai desta turma) ou transferido (vai para o arquivo). No 9º ano, a turma conclui e as crianças vão para os egressos.</li><li>Veja as <b>pendências</b> do ano que termina: boletins e atas não finalizados, PEIs a revisar e encontros de reforço sem marcação. Deixe marcado “Criar uma tarefa para cada pendência” e escolha o prazo: elas entram na agenda do novo ano.</li><li>Confirme. A nova turma (por exemplo, “4º ano A de 2027”) é criada com a citação e as assinaturas do boletim do ano anterior e com a lista de matérias do horário semanal (quem dá cada aula), para você ajustar ao novo ano; os dias do horário semanal começam vazios.</li><li>Inclua as crianças novas.</li></ol>
 <p><b>O ano anterior continua aberto.</b> Depois da virada, tudo o que não foi finalizado (boletins, atas, planos, PEI, reforços) pode ser editado e finalizado normalmente: basta escolher a turma do ano anterior no seletor, no alto da tela. Só o que já estava finalizado fica travado, como sempre. O ano anterior também continua disponível para consulta, para a ficha da criança e para a evolução da turma.</p>
 
-<h2 id="m-seguranca">34. Segurança e LGPD</h2>
+<h2 id="m-seguranca">35. Segurança e LGPD</h2>
 <ul><li><b>Senha:</b> com ela ligada, tudo é criptografado (AES-256-GCM) neste aparelho e no arquivo .tecela.</li>
 <li><b>Esqueci a senha:</b> na tela de senha, marque “Esqueci a senha” e digite a chave de recuperação. Depois, defina uma senha nova.</li>
 <li><b>Travamento:</b> a Tecelã trava sozinha depois de alguns minutos sem uso (ajustável).</li>
+<li><b>Cópia de segurança:</b> sempre com senha, mesmo com a Tecelã sem senha (veja <a href="#m-copiaseg">Cópia de segurança</a>).</li>
 <li><b>Computador de terceiros:</b> abra o arquivo sem gravar nada no aparelho e, ao terminar, use “💾 Salvar”.</li>
 <li><b>Sigilo:</b> anotações sigilosas e pontos de atenção nunca entram no boletim, e só saem do app em relatórios se você marcar. Nada é enviado a servidores: tudo fica no aparelho e no seu arquivo.</li>
 <li><b>Documentos sigilosos:</b> PEI, entrevista com a família, estudo de criança e contatos marcados como sigilosos só saem do app quando você exporta. A ficha de emergência e o roteiro do substituto levam só o que está em “Saúde e segurança” e os pontos de atenção não sigilosos: entregue-os só a quem cuida das crianças e peça de volta.</li>
 <li><b>Partilha pedagógica:</b> o arquivo de partilha leva só material pedagógico, por uma lista fechada do que pode sair; nomes conhecidos, e-mails e telefones são trocados por marcadores, e você confere tudo antes de gerar (veja <a href="#m-partilha">Partilha pedagógica</a>).</li>
 <li><b>Licença e autoria:</b> a Tecelã é software livre (GNU GPL versão 3, com termos adicionais). Toda cópia deve manter visível o aviso “Tecelã — criada por Márcio Willians Barreto de Andrade”, e versões modificadas devem se identificar como diferentes da original e informar que o autor original não tem responsabilidade sobre as alterações. O texto completo está nos Créditos.</li></ul>
 
-<h2 id="m-faq">35. Perguntas frequentes</h2>
+<h2 id="m-faq">36. Perguntas frequentes</h2>
 <p><b>Como envio uma sugestão ou vejo se há versão nova?</b> Em Ajuda → Sobre, sugestões e versões (ou no link “Sugestões e novas versões” da tela inicial) estão o e-mail do autor e o endereço das versões: <a href="https://github.com/MarcioWillians/tecela/releases/latest" target="_blank" rel="noopener noreferrer">github.com/MarcioWillians/tecela</a>. Não envie dados de crianças, seus ou da entidade, nem prints com nomes. Para atualizar, salve o seu arquivo (💾 Salvar), baixe o novo <i>Tecela.html</i> e substitua o antigo na mesma pasta, com o mesmo nome: assim os dados continuam lá. Se trocar de pasta ou de nome, nada se perde: abra o seu arquivo .tecela.</p>
 <p><b>Quero apagar um verbete que veio com a Tecelã.</b> Abra o verbete e use “Ocultar verbete”. Ele sai da lista e dos relatórios e pode voltar em “Verbetes ocultos”.</p>
 <p><b>Por que um item de Cadastros foi arquivado, e não excluído?</b> Porque ele já é usado em algum registro. Toque no número da coluna “Uso” para ver onde.</p>
 <p><b>Como uso as frases prontas?</b> Veja <a href="#m-frases">Frases prontas</a>: no ✎ Anotar, escolha a frase no campo “Frases prontas”, logo abaixo do texto; ela entra no texto e você completa.</p>
 <p><b>Toquei em “◎ Rascunho da observação” e não veio texto.</b> O rascunho usa só as marcas da Observação do período, não as anotações. Ou a criança ainda não tem marcas nos itens ligados àquela seção, ou nenhum item está ligado a ela (ligue em Cadastros → Observação: itens). Para trazer anotações, use “Trazer novas anotações”.</p>
 <p><b>O relatório “Observação do período” está vazio.</b> Confira o período escolhido no alto do relatório: só aparecem as marcas daquele período.</p>
+<p><b>O computador estragou. Como recupero?</b> No computador novo, abra a Tecelã, use “Abrir um arquivo da Tecelã” e escolha a sua última cópia de segurança (do pendrive, do Drive, do OneDrive ou do e-mail), com a senha da cópia ou a chave de recuperação.</p>
+<p><b>Apaguei um texto sem querer.</b> Use <b>↶</b> no alto da tela (ou Ctrl+Z fora do campo) enquanto a Tecelã estiver aberta. Veja <a href="#m-desfazer">Desfazer nos textos</a>.</p>
 <p><b>Limpei o navegador e os dados sumiram.</b> Na tela inicial, use “Abrir um arquivo da Tecelã” e escolha o seu arquivo .tecela. Por isso é importante salvar o arquivo com frequência (veja <a href="#m-copia">Salvar o arquivo</a>).</p>
 <p><b>Saí sem salvar no arquivo. Perdi o que fiz?</b> Não, se você abrir a Tecelã de novo no mesmo navegador: o que você digitou fica gravado nele. Mas essa cópia pode se perder se o navegador for limpo; salve no arquivo assim que puder.</p>
 <p><b>Fiz a virada do ano e ficou um boletim sem finalizar.</b> Escolha a turma do ano anterior no seletor, no alto da tela: tudo o que não foi finalizado continua editável.</p>
