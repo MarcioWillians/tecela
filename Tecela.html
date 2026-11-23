@@ -335,6 +335,12 @@ td.dl-calc{color:var(--tinta2);font-weight:700}
 .medidor.meio span{background:#D9A520}
 .medidor.cheio span{background:#C0533A}
 .manual p,.manual li{overflow-wrap:break-word}
+.ico-boia{width:1.15em;height:1.15em;vertical-align:-.22em;display:inline-block;flex:none}
+.cel-bol{cursor:pointer}
+.cel-bol:hover{outline:2px solid var(--azul,#2F6AA8);outline-offset:-2px}
+.secao-bol.destaque,.cartao.destaque{box-shadow:0 0 0 3px var(--amar,#F2C94C);transition:box-shadow .3s}
+.arq-continuar{text-align:center;margin:-.3rem 0 .2rem;overflow-wrap:anywhere}
+.opcoes .btn{max-width:100%;overflow-wrap:anywhere}
 
 </style>
 <style id="pg"></style>
@@ -394,11 +400,11 @@ https://github.com/nodeca/pako/blob/main/LICENSE
    Padrões de criptografia e de arquivos adaptados do PazNoBolso 0.9.
    ========================================================================== */
 'use strict';
-const VERSAO = '1.11.1';
+const VERSAO = '1.12';
 /* anos visíveis nas listas: o 9º ano fica oculto por padrão (na tradição Waldorf ele já é o início do ensino médio);
    uma turma de 9º ano que já exista continua aparecendo */
 const seriesVisiveis = extra => { const r = [1, 2, 3, 4, 5, 6, 7, 8]; if (CFG.prefs.mostrar9 || (typeof D !== 'undefined' && D.turmas && D.turmas.some(t => t.serie === 9)) || extra === 9) r.push(9); return r; };
-const DATA_VERSAO = '21 de novembro de 2026';
+const DATA_VERSAO = '23 de novembro de 2026';
 const AUTORIA = 'Tecelã — criada por Márcio Willians Barreto de Andrade. Software livre como ferramenta de inclusão social e digital. Contra a pirataria: use, estude e compartilhe dentro da licença.';
 const SLOGAN = 'Fio a fio, tecendo as linhas da vida escolar';
 const AUTOR = 'Márcio Willians Barreto de Andrade';
@@ -661,7 +667,11 @@ async function pacoteCopia(opc) {
 /* ---------- arquivo de trabalho (como no PazNoBolso): "Salvar" grava no mesmo arquivo ---------- */
 /* o nome do arquivo leva a data e a hora em que foi guardado: Tecela_Escola_2026-11-05_14h32.tecela */
 const carimbo = (d => { d = d || new Date(); return hojeISO(d) + '_' + String(d.getHours()).padStart(2, '0') + 'h' + String(d.getMinutes()).padStart(2, '0'); });
-const semCarimbo = n => String(n || '').replace(/\.(tecela|json)$/i, '').replace(/_\d{4}-\d{2}-\d{2}_\d{2}h\d{2}$/, '');
+/* tira do fim, quantas vezes houver, as extensões (.tecela, .json), as datas e horas e o “ (1)” que o navegador acrescenta:
+   “X_2026-11-07_16h56.tecela_2026-11-07_22h47.tecela.json” volta a ser “X” */
+const semCarimbo = n => { let s = String(n || ''), a; do { a = s; s = s.replace(/\s*\(\d+\)$/, '').replace(/\.(tecela|json)$/i, '').replace(/_\d{4}-\d{2}-\d{2}_\d{2}h\d{2}$/, ''); } while (s !== a); return s; };
+/* tipo genérico: com “application/json”, o Chrome do Android acrescenta “.json” ao nome */
+const TIPO_TECELA = 'application/octet-stream';
 const nomeComData = base => (semCarimbo(base) || 'Tecela_' + nomeArq(CFG.escola.nome || 'turma')) + '_' + carimbo() + '.tecela';
 const nomeArquivoPadrao = () => nomeComData('Tecela_' + nomeArq(CFG.escola.nome || 'turma'));
 async function lerHandle() { if (!DB || SE.memoria) return null; try { const r = (await idbTudo('config')).find(x => x.id === 'arqHandle'); return r ? r.v : null; } catch (x) { return null; } }
@@ -676,7 +686,7 @@ async function guardar(comoNovo) {
       /* o mesmo arquivo, renomeado com a nova data e hora, quando o navegador permite */
       if (typeof h.move === 'function') { const novo = nomeComData(h.name); try { await h.move(novo); nome = h.name || novo; } catch (x) { } }
     } catch (x) { h = null; nome = null; } } else h = null;
-  if (!nome) { const r = await salvarComo(nomeComData(CFG.prefs.arquivoNome || nomeArquivoPadrao()), txt, 'application/json', 'Arquivo da Tecelã'); if (!r) { aviso('Nada foi salvo: a janela de salvar foi cancelada.'); return false; } nome = r.nome; escolheu = r.escolheu; if (r.escolheu && ultimoLocal) await guardarHandle(ultimoLocal); }
+  if (!nome) { const r = await salvarComo(nomeComData(CFG.prefs.arquivoNome || nomeArquivoPadrao()), txt, TIPO_TECELA, 'Arquivo da Tecelã'); if (!r) { aviso('Nada foi salvo: a janela de salvar foi cancelada.'); return false; } nome = r.nome; escolheu = r.escolheu; if (r.escolheu && ultimoLocal) await guardarHandle(ultimoLocal); }
   await prefs({ pendente: false, ultimaCopia: new Date().toISOString(), arquivoNome: nome });
   aviso(escolheu ? 'Salvo em ' + nome : 'Salvo na pasta de downloads: ' + nome); if (!SE.saiu && SE.app) render(); return true;
 }
@@ -1478,13 +1488,13 @@ const htmlNav = () => {
 };
 A.navGrupo = async d => { const f = (CFG.prefs.navFechados || []).slice(), i = f.indexOf(d.g); if (i < 0) f.push(d.g); else f.splice(i, 1); await prefs({ navFechados: f }); render(); };
 const htmlTopo = t => '<div class="turma">' + (turmasVisiveis().length ? '<select data-c="trocaTurma" aria-label="Turma">' + turmasVisiveis().map(x => '<option value="' + x.id + '"' + (t && x.id === t.id ? ' selected' : '') + '>' + e(rotuloTurma(x)) + '</option>').join('') + '</select>' : '') + '</div>' +
-  '<div class="linha"><input type="search" class="busca" data-c="busca" placeholder="Buscar…  (Ctrl+K)" aria-label="Buscar em tudo" value="' + e(UI.tela === 'busca' ? UI.filtro.busca || '' : '') + '"><button class="btn peq" data-a="manualEm" data-id="m-' + UI.tela + '" title="Ajuda desta tela">?</button><button class="btn peq" data-a="desfazerTexto" title="Desfazer a última alteração de texto (Ctrl+Z fora do campo)" aria-label="Desfazer a última alteração de texto">↶</button><button class="btn peq' + (CFG.prefs.pendente && !SE.demo ? ' pri' : '') + '" data-a="copia" title="' + e((CFG.prefs.arquivoNome ? 'Salvar em ' + CFG.prefs.arquivoNome : 'Salvar em um arquivo') + ' (Ctrl+S)') + '">💾 Salvar</button><button class="btn peq' + (copiaVencida() ? ' alerta-copia' : '') + '" data-a="copiaSeg" title="Cópia de segurança, com senha, para guardar fora deste computador">🛟<span class="so-largo"> Cópia</span></button><button class="btn peq" data-a="sair">Sair</button></div>' + htmlEstadoSalvo();
+  '<div class="linha"><input type="search" class="busca" data-c="busca" placeholder="Buscar…  (Ctrl+K)" aria-label="Buscar em tudo" value="' + e(UI.tela === 'busca' ? UI.filtro.busca || '' : '') + '"><button class="btn peq" data-a="manualEm" data-id="m-' + UI.tela + '" title="Ajuda desta tela">?</button><button class="btn peq" data-a="desfazerTexto" title="Desfazer a última alteração de texto (Ctrl+Z fora do campo)" aria-label="Desfazer a última alteração de texto">↶</button><button class="btn peq' + (CFG.prefs.pendente && !SE.demo ? ' pri' : '') + '" data-a="copia" title="' + e((CFG.prefs.arquivoNome ? 'Salvar em ' + CFG.prefs.arquivoNome : 'Salvar em um arquivo') + ' (Ctrl+S)') + '">💾 Salvar</button><button class="btn peq' + (copiaVencida() ? ' alerta-copia' : '') + '" data-a="copiaSeg" title="Cópia de segurança, com senha, para guardar fora deste computador">' + BOIA + '<span class="so-largo"> Cópia</span></button><button class="btn peq" data-a="sair">Sair</button></div>' + htmlEstadoSalvo();
 /* indicador discreto: o que se digita é gravado sozinho neste aparelho; o arquivo é a cópia que vale */
 function htmlEstadoSalvo() {
   if (SE.demo) return '<button class="estado-salvo" data-a="sobreSalvar">Modelo de demonstração: nada é salvo em arquivo</button>';
   const hm = d => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), u = CFG.prefs.ultimaCopia;
   const arq = !u ? 'ainda não salvo em arquivo' : 'arquivo salvo ' + quandoFoi(u);
-  return '<button class="estado-salvo' + (CFG.prefs.pendente ? ' pend' : '') + '" data-a="sobreSalvar" title="Como a Tecelã salva o seu trabalho"><span class="ponto"></span>' + (SE.memoria ? 'Só na memória (computador de terceiros)' : '✓ Salvo neste aparelho' + (SE.salvoAs ? ' às ' + hm(SE.salvoAs) : '')) + ' · ' + arq + (CFG.prefs.pendente ? ' · falta salvar no arquivo' : '') + '</button>' + (copiaVencida() ? '<button class="estado-salvo pend" data-a="copiaSeg">🛟 ' + e(textoCopiaVencida()) + '</button>' : '');
+  return '<button class="estado-salvo' + (CFG.prefs.pendente ? ' pend' : '') + '" data-a="sobreSalvar" title="Como a Tecelã salva o seu trabalho"><span class="ponto"></span>' + (SE.memoria ? 'Só na memória (computador de terceiros)' : '✓ Salvo neste aparelho' + (SE.salvoAs ? ' às ' + hm(SE.salvoAs) : '')) + ' · ' + arq + (CFG.prefs.pendente ? ' · falta salvar no arquivo' : '') + '</button>' + (copiaVencida() ? '<button class="estado-salvo pend" data-a="copiaSeg">' + BOIA + ' ' + e(textoCopiaVencida()) + '</button>' : '');
 }
 function quandoFoi(iso) { const d = new Date(iso), h = new Date(), dias = Math.floor((new Date(h.toDateString()) - new Date(d.toDateString())) / 864e5); return dias <= 0 ? 'hoje às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : dias === 1 ? 'ontem' : 'há ' + dias + ' dias'; }
 const atualizarEstadoSalvo = () => { const b = $('.estado-salvo'); if (b) b.outerHTML = htmlEstadoSalvo(); const c = $('.topo [data-a=copia]'); if (c) c.classList.toggle('pri', !!CFG.prefs.pendente && !SE.demo); };
@@ -1558,7 +1568,7 @@ A.copia = async () => { const ok = await fazerCopia(); if (ok) explicarCopiaUmaV
 A.sair = async () => {
   await descarregarFila();
   if (SE.demo) return A.sairDemo();
-  const v = await dlg({ titulo: 'Sair da Tecelã', ok: false, cancelar: 'Voltar', corpo: (CFG.prefs.pendente ? '<p>Há alterações que ainda não foram salvas no arquivo' + (CFG.prefs.arquivoNome ? ' em <b>' + e(CFG.prefs.arquivoNome) + '</b>' : '') + '.</p>' : '<p>Tudo está salvo' + (CFG.prefs.arquivoNome ? ' em <b>' + e(CFG.prefs.arquivoNome) + '</b>' : '') + '.</p>') + (copiaVencida() ? '<p class="alerta">🛟 ' + e(textoCopiaVencida()) + '. <button type="button" class="btn peq" data-x="seg">Fazer a cópia de segurança</button></p>' : ''), extra: '<button type="button" class="btn" data-x="sem">Sair' + (CFG.prefs.pendente ? ' sem salvar no arquivo' : '') + '</button>' + (CFG.prefs.pendente ? '<button type="button" class="btn pri" data-x="com">Salvar e sair</button>' : '') });
+  const v = await dlg({ titulo: 'Sair da Tecelã', ok: false, cancelar: 'Voltar', corpo: (CFG.prefs.pendente ? '<p>Há alterações que ainda não foram salvas no arquivo' + (CFG.prefs.arquivoNome ? ' em <b>' + e(CFG.prefs.arquivoNome) + '</b>' : '') + '.</p>' : '<p>Tudo está salvo' + (CFG.prefs.arquivoNome ? ' em <b>' + e(CFG.prefs.arquivoNome) + '</b>' : '') + '.</p>') + (copiaVencida() ? '<p class="alerta">' + BOIA + ' ' + e(textoCopiaVencida()) + '. <button type="button" class="btn peq" data-x="seg">Fazer a cópia de segurança</button></p>' : ''), extra: '<button type="button" class="btn" data-x="sem">Sair' + (CFG.prefs.pendente ? ' sem salvar no arquivo' : '') + '</button>' + (CFG.prefs.pendente ? '<button type="button" class="btn pri" data-x="com">Salvar e sair</button>' : '') });
   if (!v) return;
   if (v._botao === 'seg') { await A.copiaSeg(); return A.sair(); }
   if (v._botao === 'com') { const ok = await fazerCopia(); if (!ok) return; }
@@ -1567,12 +1577,14 @@ A.sair = async () => {
 
 /* ---------- entrada ---------- */
 function telaEntrada(html) { SE.app = false; $('#app').innerHTML = '<div class="entrada"><div class="caixa">' + html + '</div></div>'; }
+/* nome de arquivo longo encurtado no meio, para caber na tela do celular */
+const nomeCurto = (n, max) => { n = String(n || ''); max = max || 40; return n.length <= max ? n : n.slice(0, Math.ceil(max * .55)) + '…' + n.slice(-Math.floor(max * .4)); };
 /* tela inicial, como no PazNoBolso: continuar, abrir arquivo, novo, modelo */
 function telaInicio(temDados) {
   SE.temDados = temDados; const p = CFG.prefs;
   telaEntrada('<div class="logo">' + SVG_LOGO.v + '</div><p class="versao">Versão ' + VERSAO + ' · ' + DATA_VERSAO + ' · <a href="#" data-a="contatoApp">Sugestões e novas versões</a></p>' + (!p.lgpdOk ? '<p style="text-align:center">Boas-vindas! A Tecelã ajuda a professora e o professor de classe a registrar anotações, atas, observações e perfis e a tecer, com esses fios, o Boletim Descritivo de cada criança.</p><div class="aviso-lgpd">' + AVISO_LGPD + '</div><label class="ck"><input type="checkbox" id="ckLgpd"> <span>Li e entendi como meus dados são guardados.</span></label>' : '') +
     (SE.semBanco ? '<p class="alerta verm">Este navegador não permitiu guardar dados nesta página. A Tecelã vai funcionar só na memória: salve o arquivo antes de fechar.</p>' : '') +
-    '<div class="opcoes">' + (temDados ? '<button class="btn pri" data-a="continuar">Continuar' + (p.arquivoNome ? ': ' + e(p.arquivoNome) : '') + '</button>' + (p.ultimaCopia ? '<p class="dica" style="text-align:center;margin:-.3rem 0 .2rem">salvo em ' + new Date(p.ultimaCopia).toLocaleString('pt-BR') + (p.pendente ? ' · há alterações ainda não salvas no arquivo' : '') + '</p>' : '') : '') +
+    '<div class="opcoes">' + (temDados ? '<button class="btn pri" data-a="continuar">Continuar</button>' + (p.arquivoNome || p.ultimaCopia ? '<p class="dica arq-continuar">' + (p.arquivoNome ? '<span title="' + e(p.arquivoNome) + '">' + e(nomeCurto(p.arquivoNome)) + '</span>' + (p.ultimaCopia ? ' · ' : '') : '') + (p.ultimaCopia ? 'salvo em ' + new Date(p.ultimaCopia).toLocaleString('pt-BR') : '') + (p.pendente ? ' · há alterações ainda não salvas no arquivo' : '') + '</p>' : '') : '') +
     '<button class="btn' + (temDados ? '' : ' pri') + '" data-a="abrirArquivo">Abrir um arquivo da Tecelã</button>' +
     '<button class="btn" data-a="novo">Novo</button><button class="btn" data-a="novo" data-bol="1">Novo a partir de boletins anteriores (.docx)</button>' +
     '<button class="btn" data-a="entrarDemo">Modelo de demonstração</button><button class="btn" data-a="terceiros">Computador de terceiros: abrir um arquivo sem gravar neste aparelho</button></div><p class="autoria">' + e(AUTORIA) + ' <a href="#" data-a="verLicenca">Licença</a></p>');
@@ -1716,7 +1728,11 @@ function formAluno(a, t) {
   h += blocoDigitais('alunoId', a.id, { al: a.id }, 'Digitalizados da criança');
   return h;
 }
-A.voltarSub = () => { UI.sub = null; render(); };
+A.voltarSub = () => {
+  const m = UI.tela === 'bol' && UI.mapaBol; UI.sub = null; UI.mapaBol = null; render();
+  /* volta ao painel de conferência na mesma posição */
+  if (m) { const g = $('.grade-fixa'); if (g) { g.scrollLeft = m.x; g.scrollTop = m.gy; } window.scrollTo(0, m.y); }
+};
 A.addAtencao = async d => { const a = IX.alunos[d.id]; a.atencao = (a.atencao || []).concat([{ id: uid(), tipo: (itensLista('atencao')[0] || {}).chave || 'outro', descricao: '', desde: hojeISO(), situacao: 'ativo', sigiloso: true }]); await salvar('alunos', a); render(); };
 A.remAtencao = async d => { const a = IX.alunos[d.id]; if (!(await confirmar('Remover o ponto de atenção?', 'Se ele apenas deixou de ser necessário, prefira marcar a situação como “Resolvido”, para manter o histórico.', 'Remover'))) return; a.atencao.splice(Number(d.i), 1); await salvar('alunos', a); render(); };
 A.abrirModelo = async () => { if (!(await confirmar('Abrir o modelo de demonstração?', 'Seus dados serão fechados com segurança enquanto você vê o modelo, que tem só dados fictícios. Ao sair do modelo, você volta a eles' + (CFG.cripto ? ' digitando a senha' : '') + '.', 'Abrir o modelo'))) return; A.entrarDemo(); };
@@ -2057,10 +2073,25 @@ function abaBolAlunos(t) {
   const bols = boletinsAtuais(t.id), mod = modeloDaSerie(t.serie), ativas = mod.secoes.filter(s => s.ativa);
   let h = '<div class="linha"><button class="btn" data-a="exportarTodos">Exportar todos num só documento</button><button class="btn" data-a="atualizarFaltasTodos">Atualizar faltas de todos</button><button class="btn" data-a="finalizarTodos"' + (Object.values(boletinsAtuais(t.id)).every(faltasAtualizadas) ? ' title="Finaliza de uma vez os boletins completos"' : ' disabled title="Clique antes em “Atualizar faltas de todos”"') + '>✓ Finalizar os boletins prontos</button><button class="btn" data-a="conferirBol" title="Frases repetidas, seções fora do tamanho e concordância de gênero">Conferir os textos</button><button class="btn" data-a="zipBoletins">Um arquivo por criança (.zip)</button><button class="btn" data-a="trazerTodos">Trazer novas anotações para todos</button><button class="btn" data-a="rascunhoTodos" title="Usa a última observação do período">◎ Rascunho da observação nas seções vazias</button></div>';
   h += '<div class="cartao"><h3>Painel de conferência</h3><p class="dica"><span class="etq" style="background:var(--azulC)">texto individual</span> <span class="etq" style="background:var(--amarC)">só texto da turma</span> <span class="etq" style="background:var(--vermC)">vazio</span></p><div class="grade-fixa"><table class="tabela conf"><tr><th style="text-align:left">Aluno</th>' + ativas.map(s => '<th title="' + e(s.titulo) + '" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:.72rem;text-transform:none;letter-spacing:0;height:7.5rem">' + e(s.titulo) + '</th>').join('') + '<th>Poema</th><th>Situação</th></tr>' +
-    al.map(a => { const b = bols[a.id]; const st = b ? statusBoletim(b).st : {}; return '<tr class="clic" data-a="abrirBol" data-al="' + a.id + '"><td style="text-align:left;white-space:nowrap"><b>' + e(a.nome) + '</b></td>' + ativas.map(s => { const v = st[s.key] || ((t.boletim || {}).textos || {})[s.key] ? (st[s.key] || 'r') : 'v'; return '<td class="' + v + '">' + (v === 'p' ? '●' : v === 'r' ? '○' : '·') + '</td>'; }).join('') + '<td class="' + (b && b.poemaTexto ? 'p' : 'v') + '">' + (b && b.poemaTexto ? '●' : '·') + '</td><td>' + (!b ? '<span class="etq">não iniciado</span>' : b.estado === 'finalizado' ? '<span class="etq fin">finalizado</span>' : '<span class="etq rasc">rascunho</span>') + '</td></tr>'; }).join('') + '</table></div></div>';
+    al.map(a => { const b = bols[a.id]; const st = b ? statusBoletim(b).st : {}; return '<tr class="clic" data-a="abrirBol" data-al="' + a.id + '"><td style="text-align:left;white-space:nowrap"><b>' + e(a.nome) + '</b></td>' + ativas.map(s => { const v = st[s.key] || ((t.boletim || {}).textos || {})[s.key] ? (st[s.key] || 'r') : 'v'; return '<td class="' + v + ' cel-bol" data-a="abrirBol" data-al="' + a.id + '" data-sec="' + s.key + '" title="' + e('Abrir o boletim de ' + primeiroNome(a) + ' em ' + s.titulo) + '">' + (v === 'p' ? '●' : v === 'r' ? '○' : '·') + '</td>'; }).join('') + '<td class="' + (b && b.poemaTexto ? 'p' : 'v') + ' cel-bol" data-a="abrirBol" data-al="' + a.id + '" data-sec="poema" title="' + e('Abrir o boletim de ' + primeiroNome(a) + ' no poema') + '">' + (b && b.poemaTexto ? '●' : '·') + '</td><td>' + (!b ? '<span class="etq">não iniciado</span>' : b.estado === 'finalizado' ? '<span class="etq fin">finalizado</span>' : '<span class="etq rasc">rascunho</span>') + '</td></tr>'; }).join('') + '</table></div></div>';
   return h;
 }
-A.abrirBol = async d => { const t = turmaAtual(), b = await boletimDe(t, IX.alunos[d.al]); UI.sub = b.id; render(); window.scrollTo(0, 0); };
+/* do painel de conferência: a célula abre o boletim já na seção (d.sec); a volta (← Boletins) devolve o mapa na mesma posição */
+A.abrirBol = async d => {
+  const t = turmaAtual(), g = $('.grade-fixa'); UI.mapaBol = { y: window.scrollY, x: g ? g.scrollLeft : 0, gy: g ? g.scrollTop : 0 };
+  const b = await boletimDe(t, IX.alunos[d.al]); UI.sub = b.id; render();
+  const alvo = d.sec && $('#sec-' + d.sec);
+  if (!alvo) return window.scrollTo(0, 0);
+  alvo.scrollIntoView({ block: 'center' }); alvo.classList.add('destaque'); setTimeout(() => alvo.classList.remove('destaque'), 1800);
+  const ta = $(d.sec === 'poema' ? 'textarea[data-b=poemaTexto]' : 'textarea', alvo); if (ta && !ta.disabled && !ta.readOnly) ta.focus({ preventScroll: true });
+};
+/* copia o texto individual da seção (o que está no campo agora) */
+A.copiarSec = async d => {
+  const b = IX.boletins[d.id], ta = $('#sec-' + d.s + ' textarea'), txt = ta ? ta.value : (((b && b.secoes) || {})[d.s] || {}).texto || '';
+  if (!txt.trim()) return aviso('Esta seção ainda não tem texto individual.');
+  try { await navigator.clipboard.writeText(txt); } catch (x) { const t = document.createElement('textarea'); t.value = txt; t.style.cssText = 'position:fixed;opacity:0;top:0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (y) { } t.remove(); }
+  aviso('Texto copiado.');
+};
 A.trazerTodos = async () => { const t = turmaAtual(); let n = 0; for (const a of alunosDaTurma(t.id)) { const b = await boletimDe(t, a); if (b.estado !== 'finalizado') { n += trazerAnotacoes(b); await salvar('boletins', b); } } render(); aviso(n ? n + ' anotação(ões) e marcação(ões) trazidas.' : 'Nada novo para trazer.'); };
 A.rascunhoTodos = async () => {
   await descarregarFila(); const t = turmaAtual(); let n = 0, c = 0;
@@ -2163,8 +2194,8 @@ function editorBoletim(b) {
   if (pts.length) h += '<div class="alerta" style="background:var(--violC)"><b>Pontos de atenção de ' + e(primeiroNome(al)) + '</b> <span class="dica">(só para você; não entram no boletim)</span><ul style="margin:.3rem 0 0">' + pts.map(x => '<li><b>' + e(nomeItem('atencao', x.tipo)) + ':</b> ' + e(x.descricao) + (x.desde ? ' <span class="dica">desde ' + dataBR(x.desde) + '</span>' : '') + '</li>').join('') + '</ul></div>';
   h += '<fieldset style="border:0;padding:0;margin:0" ' + (fin ? 'disabled' : '') + ' data-rec="boletins:' + b.id + '">';
   if (tb.citacao) h += '<div class="cartao suave" style="text-align:center;font-style:italic">' + e(tb.citacao).replace(/\n/g, '<br>') + (tb.citacaoAutor ? '<br>' + e(tb.citacaoAutor) : '') + '</div>';
-  h += mod.secoes.filter(s => s.ativa).map(s => { const tur = substituir((tb.textos || {})[s.key], al, t); return '<div class="secao-bol"><h4>' + e(s.titulo) + ' <button type="button" class="icone-btn" data-a="verAnotSec" data-id="' + b.id + '" data-s="' + s.key + '" title="Ver anotações desta seção">✎</button>' + (fin || !secoesComObs().has(s.key) ? '' : ' <button type="button" class="btn peq" data-a="rascunhoSec" data-id="' + b.id + '" data-s="' + s.key + '" title="Acrescenta um texto montado com as marcas da Observação do período">◎ Rascunho da observação</button>') + '</h4>' + (tur ? '<p class="dica" style="white-space:pre-line;border-left:3px solid var(--amar);padding-left:.6rem">' + e(tur) + '</p>' : '') + area('secoes.' + s.key + '.texto', ((b.secoes || {})[s.key] || {}).texto, 'placeholder="Texto individual de ' + e(primeiroNome(al)) + '"') + '</div>'; }).join('');
-  h += '<div class="cartao"><h3>Poema do ano de ' + e(primeiroNome(al)) + '</h3>' + campo('Título do poema', inp('poemaTitulo', b.poemaTitulo)) + campo('Poema', area('poemaTexto', b.poemaTexto, 'class="alto"'), 'Uma estrofe por bloco; separe as estrofes com uma linha em branco. Também dá para escrever todos de uma vez em Boletins → Poema do ano.') + '</div>';
+  h += mod.secoes.filter(s => s.ativa).map(s => { const tur = substituir((tb.textos || {})[s.key], al, t); return '<div class="secao-bol" id="sec-' + s.key + '"><h4>' + e(s.titulo) + ' <button type="button" class="icone-btn" data-a="verAnotSec" data-id="' + b.id + '" data-s="' + s.key + '" title="Ver anotações desta seção">✎</button> <button type="button" class="icone-btn" data-a="copiarSec" data-id="' + b.id + '" data-s="' + s.key + '" title="Copiar o texto individual desta seção" aria-label="Copiar o texto individual desta seção">📋</button>' + (fin || !secoesComObs().has(s.key) ? '' : ' <button type="button" class="btn peq" data-a="rascunhoSec" data-id="' + b.id + '" data-s="' + s.key + '" title="Acrescenta um texto montado com as marcas da Observação do período">◎ Rascunho da observação</button>') + '</h4>' + (tur ? '<p class="dica" style="white-space:pre-line;border-left:3px solid var(--amar);padding-left:.6rem">' + e(tur) + '</p>' : '') + area('secoes.' + s.key + '.texto', ((b.secoes || {})[s.key] || {}).texto, 'placeholder="Texto individual de ' + e(primeiroNome(al)) + '"') + '</div>'; }).join('');
+  h += '<div class="cartao" id="sec-poema"><h3>Poema do ano de ' + e(primeiroNome(al)) + '</h3>' + campo('Título do poema', inp('poemaTitulo', b.poemaTitulo)) + campo('Poema', area('poemaTexto', b.poemaTexto, 'class="alto"'), 'Uma estrofe por bloco; separe as estrofes com uma linha em branco. Também dá para escrever todos de uma vez em Boletins → Poema do ano.') + '</div>';
   h += '<div class="cartao"><h3>Assinaturas</h3>' + ck('assinaturas.prof', as.prof, 'Linha de assinatura da professora') + ck('assinaturas.coord', as.coord, 'Linha de assinatura da coordenação') + campo('Nome da coordenação', inp('assinaturas.coordNome', as.coordNome)) + '</div>';
   h += '</fieldset>';
   if ((b.emTempo || []).length) h += '<div class="cartao"><h3>Em tempo</h3>' + b.emTempo.map(x => '<p><span class="etq">' + dataBR(x.data) + '</span> <span class="mao">' + e(x.texto) + '</span></p>').join('') + '</div>';
@@ -4269,6 +4300,8 @@ REL.reunioes = t => {
    Lembrete: CFG.prefs.lembreteCopia dias (padrão 5) desde CFG.prefs.ultimaCopiaSeg.
    ========================================================================== */
 'use strict';
+/* a boia desenhada aqui: o emoji 🛟 não existe no Windows 10 */
+const BOIA = '<svg class="ico-boia" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="#D9533A" stroke-width="5"/><circle cx="12" cy="12" r="8" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="4.19 8.38" stroke-dashoffset="2.1"/><circle cx="12" cy="12" r="10.5" fill="none" stroke="#8A3B2E" stroke-width=".8"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#8A3B2E" stroke-width=".8"/></svg>';
 const diasDesdeCopia = () => { const u = CFG.prefs.ultimaCopiaSeg; if (!u) return null; return Math.floor((new Date(new Date().toDateString()) - new Date(new Date(u).toDateString())) / 864e5); };
 function copiaVencida() {
   if (SE.demo || !D.turmas) return false;
@@ -4277,7 +4310,7 @@ function copiaVencida() {
   return d === null || d >= lim;
 }
 const textoCopiaVencida = () => { const d = diasDesdeCopia(); return d === null ? 'Você ainda não fez uma cópia de segurança fora deste computador' : 'Faz ' + d + ' dia' + (d === 1 ? '' : 's') + ' que você não faz uma cópia de segurança fora deste computador'; };
-const avisoCopiaPainel = () => copiaVencida() ? '<div class="alerta amar">🛟 <b>' + e(textoCopiaVencida()) + '.</b> Se este computador estragar ou for perdido, a cópia guardada em outro lugar é o que salva o seu trabalho. <button class="btn peq pri" data-a="copiaSeg">Fazer a cópia de segurança</button></div>' : '';
+const avisoCopiaPainel = () => copiaVencida() ? '<div class="alerta amar">' + BOIA + ' <b>' + e(textoCopiaVencida()) + '.</b> Se este computador estragar ou for perdido, a cópia guardada em outro lugar é o que salva o seu trabalho. <button class="btn peq pri" data-a="copiaSeg">Fazer a cópia de segurança</button></div>' : '';
 const usaSenhaDaTecela = () => !!(CFG.cripto && SE.dk);
 async function chaveDasCopias() {
   if (usaSenhaDaTecela()) return { dk: SE.dk, cripto: CFG.cripto };
@@ -4293,7 +4326,7 @@ async function chaveDasCopias() {
 A.copiaSeg = async () => {
   if (SE.demo) return aviso('O modelo de demonstração não faz cópia de segurança.');
   await descarregarFila();
-  const ok = await dlg({ titulo: '🛟 Cópia de segurança', ok: 'Fazer a cópia', corpo: '<p>A cópia de segurança é um arquivo à parte, <b>protegido por senha</b>, com todo o seu trabalho. Ela serve para o dia em que este computador estragar, for roubado ou for formatado.</p><p><b>Guarde-a fora deste computador:</b> num pendrive, na pasta do Google Drive ou do OneDrive, ou mande para o seu próprio e-mail.</p>' + (usaSenhaDaTecela() ? '<p class="dica">Ela usa a mesma senha da Tecelã.</p>' : CFG.prefs.copiaSegCripto ? '<p class="dica">Ela usa a senha das cópias de segurança, que você já criou.</p>' : '<p class="dica">Na primeira vez, você cria a senha das cópias e recebe uma chave de recuperação.</p>') });
+  const ok = await dlg({ titulo: 'Cópia de segurança', ok: 'Fazer a cópia', corpo: '<p>A cópia de segurança é um arquivo à parte, <b>protegido por senha</b>, com todo o seu trabalho. Ela serve para o dia em que este computador estragar, for roubado ou for formatado.</p><p><b>Guarde-a fora deste computador:</b> num pendrive, na pasta do Google Drive ou do OneDrive, ou mande para o seu próprio e-mail.</p>' + (usaSenhaDaTecela() ? '<p class="dica">Ela usa a mesma senha da Tecelã.</p>' : CFG.prefs.copiaSegCripto ? '<p class="dica">Ela usa a senha das cópias de segurança, que você já criou.</p>' : '<p class="dica">Na primeira vez, você cria a senha das cópias e recebe uma chave de recuperação.</p>') });
   if (!ok) return false;
   const ch = await chaveDasCopias(); if (!ch) return false;
   const txt = await pacoteCopia({ dk: ch.dk, cripto: ch.cripto, copiaSeg: true }), nome = 'Tecela_COPIA_' + nomeArq(CFG.escola.nome || 'turma') + '_' + carimbo() + '.tecela';
@@ -4302,7 +4335,7 @@ A.copiaSeg = async () => {
   if ((ANDROID || APPLE_TOQUE) && navigator.canShare) {
     try { const f = new File([txt], nome, { type: 'application/octet-stream' }); if (navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: 'Cópia de segurança da Tecelã' }); feito = true; onde = 'compartilhada'; } } catch (x) { if (x && x.name === 'AbortError') return aviso('A cópia não foi feita: o compartilhamento foi cancelado.'); }
   }
-  if (!feito) { const r = await salvarComo(nome, txt, 'application/json', 'Cópia de segurança da Tecelã'); if (!r) { aviso('A cópia não foi feita: a janela de salvar foi cancelada.'); return false; } feito = true; onde = r.escolheu ? 'salva como ' + r.nome : 'salva na pasta de downloads: ' + r.nome; }
+  if (!feito) { const r = await salvarComo(nome, txt, TIPO_TECELA, 'Cópia de segurança da Tecelã'); if (!r) { aviso('A cópia não foi feita: a janela de salvar foi cancelada.'); return false; } feito = true; onde = r.escolheu ? 'salva como ' + r.nome : 'salva na pasta de downloads: ' + r.nome; }
   await prefs({ ultimaCopiaSeg: new Date().toISOString() }); render();
   await informar('Cópia de segurança feita', '<p>Cópia ' + e(onde) + '.</p><p><b>Agora, leve-a para fora deste computador</b>, se ainda não estiver:</p><ul><li>copie para um <b>pendrive</b>, ou</li><li>arraste para a pasta do <b>Google Drive</b> ou do <b>OneDrive</b>, ou</li><li>envie para o seu próprio <b>e-mail</b>, como anexo.</li></ul><p class="dica">Para abrir a cópia, use “Abrir um arquivo da Tecelã” e a senha ' + (usaSenhaDaTecela() ? 'da Tecelã' : 'das cópias') + ' (ou a chave de recuperação). A próxima lembrança vem em ' + (Number(CFG.prefs.lembreteCopia) || 5) + ' dias.</p>');
   return true;
@@ -4310,12 +4343,12 @@ A.copiaSeg = async () => {
 /* no primeiro Salvar, uma explicação única sobre o arquivo e a cópia em outro lugar */
 async function explicarCopiaUmaVez() {
   if (CFG.prefs.explicouCopia || SE.demo) return; await prefs({ explicouCopia: true });
-  await informar('O seu arquivo foi salvo', '<p>O arquivo <b>.tecela</b> guarda todo o seu trabalho. Use <b>💾 Salvar</b> sempre que terminar.</p><p>Mas um arquivo só, num computador só, se perde junto com ele. Por isso, de vez em quando, faça também uma <b>🛟 cópia de segurança</b> e guarde fora deste computador (pendrive, Google Drive, OneDrive ou o seu e-mail). A Tecelã lembra você a cada ' + (Number(CFG.prefs.lembreteCopia) || 5) + ' dias.</p><p class="dica">Dica: se o seu computador tem a pasta do Google Drive ou do OneDrive, salve o arquivo de trabalho dentro dela: assim ele ganha uma cópia na nuvem sozinho.</p>');
+  await informar('O seu arquivo foi salvo', '<p>O arquivo <b>.tecela</b> guarda todo o seu trabalho. Use <b>💾 Salvar</b> sempre que terminar.</p><p>Mas um arquivo só, num computador só, se perde junto com ele. Por isso, de vez em quando, faça também uma <b>' + BOIA + ' cópia de segurança</b> e guarde fora deste computador (pendrive, Google Drive, OneDrive ou o seu e-mail). A Tecelã lembra você a cada ' + (Number(CFG.prefs.lembreteCopia) || 5) + ' dias.</p><p class="dica">Dica: se o seu computador tem a pasta do Google Drive ou do OneDrive, salve o arquivo de trabalho dentro dela: assim ele ganha uma cópia na nuvem sozinho.</p>');
 }
 /* Ajustes */
 function cartaoCopiaSeg() {
   const u = CFG.prefs.ultimaCopiaSeg;
-  return '<div class="cartao" id="m-copiaseg-aj"><h3>🛟 Cópia de segurança</h3><p>' + (u ? 'Última cópia de segurança: <b>' + new Date(u).toLocaleString('pt-BR') + '</b>.' : 'Nenhuma cópia de segurança feita ainda.') + ' A cópia é sempre protegida por senha (' + (usaSenhaDaTecela() ? 'a mesma da Tecelã' : CFG.prefs.copiaSegCripto ? 'a senha das cópias' : 'você cria a senha das cópias na primeira vez') + ') e deve ser guardada fora deste computador.</p>' +
+  return '<div class="cartao" id="m-copiaseg-aj"><h3>' + BOIA + ' Cópia de segurança</h3><p>' + (u ? 'Última cópia de segurança: <b>' + new Date(u).toLocaleString('pt-BR') + '</b>.' : 'Nenhuma cópia de segurança feita ainda.') + ' A cópia é sempre protegida por senha (' + (usaSenhaDaTecela() ? 'a mesma da Tecelã' : CFG.prefs.copiaSegCripto ? 'a senha das cópias' : 'você cria a senha das cópias na primeira vez') + ') e deve ser guardada fora deste computador.</p>' +
     '<div class="linha"><button class="btn pri" data-a="copiaSeg">Fazer a cópia de segurança</button>' + (!usaSenhaDaTecela() && CFG.prefs.copiaSegCripto ? '<button class="btn" data-a="trocarSenhaCopias">Trocar a senha das cópias</button>' : '') + '</div>' +
     campo('Lembrar de fazer a cópia a cada (dias)', '<input type="number" min="0" max="60" data-c="lembreteCopia" value="' + (CFG.prefs.lembreteCopia == null ? 5 : Number(CFG.prefs.lembreteCopia)) + '" style="width:6rem">', 'Use 0 para não lembrar (não recomendado).') + '</div>';
 }
@@ -5466,7 +5499,7 @@ const MANUAL_HTML = `
 <li><b>Ajustar:</b> Biblioteca, Cadastros, Papel timbrado, Ajustes e arquivo, Ajuda.</li></ul>
 <p>Toque no nome de um grupo para recolhê-lo ou abri-lo. No fim do menu, <b>Recentes</b> mostra as últimas telas usadas. O menu fica na mesma posição quando você troca de tela.</p>
 <p>No celular, as telas mais usadas ficam numa barra embaixo (Painel, Anotações, Observação, Boletins); o botão <b>Mais</b> mostra todas as outras.</p>
-<p>No alto de todas as telas ficam o seletor da turma, o campo <b>Buscar…</b>, o <b>?</b> (ajuda daquela tela), <b>↶</b> (desfazer a última alteração de texto), <b>💾 Salvar</b>, <b>🛟 Cópia</b> (cópia de segurança) e <b>Sair</b>. Logo abaixo, uma linha discreta mostra se está tudo salvo neste aparelho e quando o arquivo foi salvo pela última vez; toque nela para entender a diferença (veja <a href="#m-copia">Salvar o arquivo</a>).</p>
+<p>No alto de todas as telas ficam o seletor da turma, o campo <b>Buscar…</b>, o <b>?</b> (ajuda daquela tela), <b>↶</b> (desfazer a última alteração de texto), <b>💾 Salvar</b>, <b><svg class="ico-boia" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="#D9533A" stroke-width="5"/><circle cx="12" cy="12" r="8" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="4.19 8.38" stroke-dashoffset="2.1"/><circle cx="12" cy="12" r="10.5" fill="none" stroke="#8A3B2E" stroke-width=".8"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#8A3B2E" stroke-width=".8"/></svg> Cópia</b> (cópia de segurança) e <b>Sair</b>. Logo abaixo, uma linha discreta mostra se está tudo salvo neste aparelho e quando o arquivo foi salvo pela última vez; toque nela para entender a diferença (veja <a href="#m-copia">Salvar o arquivo</a>).</p>
 <h3>Atalhos que poupam trabalho</h3>
 <ul><li><b>✎ Anotar</b>, o botão vermelho no canto da tela: registra uma anotação sem sair de onde você está. Veja <a href="#m-anot">Anotações</a>.</li>
 <li><b>Buscar…:</b> digite uma palavra e tecle Enter. A Tecelã procura em crianças, anotações, atas, boletins (inclusive nos textos da turma e na citação), vivências, eventos, tarefas, conselhos, reforços, épocas do currículo, planejamentos, planos de época, combinados, PEIs e na Biblioteca, em todas as turmas, e também em contatos com as famílias e no repertório. Toque num resultado para abri-lo.</li>
@@ -5556,6 +5589,8 @@ const MANUAL_HTML = `
 <ol><li><b>Seções do ano:</b> ligue, desligue, renomeie e reordene as seções da série. Cada série tem as suas. Marque <b>Subtítulo</b> para que o título da seção apareça no boletim, em negrito, antes do texto; desmarcado, a seção entra só com o texto. Logo abaixo, a opção do <b>poema do ano</b> faz o título do poema aparecer como subtítulo, como as seções (desmarcada, ele fica centralizado, com “Poema” acima).</li>
 <li><b>Textos da turma:</b> a citação, as assinaturas e, para cada seção, o texto que vale para toda a turma (ele entra no boletim de todas as crianças, antes do texto individual). O botão <b>✦ Rascunho da introdução</b> monta um começo com o número de crianças, as épocas e as vivências do ano; os trechos entre colchetes são para você completar. Em <b>Aparência do texto</b>, ligue o <b>recuo na primeira linha dos parágrafos</b> (vale para o boletim inteiro, na tela, no PDF e no Word) e use <b>Visualizar os textos da turma</b> para ver como eles entram no boletim, já com o nome de uma criança nos marcadores.</li>
 <li><b>Boletim de cada criança:</b> na aba “Alunos e conferência”, toque no nome. Cada seção mostra, em cinza, o texto da turma e, abaixo, o campo do texto individual.</li></ol>
+<p><b>Painel de conferência:</b> o mapa mostra, para cada criança (linhas) e cada seção (colunas), se já há texto individual (●), só o texto da turma (○) ou nada (·). <b>Toque numa bolinha</b> para abrir o boletim daquela criança já naquela seção, com o cursor no texto individual; a coluna Poema abre no poema. “← Boletins” volta ao mapa no mesmo ponto, para seguir conferindo.</p>
+<p><b>📋 Copiar:</b> ao lado do título de cada seção, copia de uma vez o texto individual inteiro daquela seção, sem precisar selecionar com o mouse.</p>
 <h3>De onde vem o texto individual</h3>
 <p>São duas fontes diferentes, com botões diferentes:</p>
 <ul><li><b>Trazer novas anotações:</b> copia para cada seção as <b>anotações com estrela</b> (e os trechos marcados nas atas) daquela seção. Elas já vêm na primeira vez que o boletim é aberto; o botão traz as que foram lançadas depois. O lápis ✎ ao lado do título da seção mostra todas as anotações daquela seção.</li>
@@ -5776,7 +5811,7 @@ const MANUAL_HTML = `
 <ul><li><b>Neste aparelho, sozinha:</b> tudo o que você digita é gravado na hora, sem botão, no armazenamento do navegador (o IndexedDB). Por isso, ao sair sem salvar no arquivo, nada se perde de imediato: ao abrir a Tecelã de novo, neste mesmo navegador e a partir do mesmo <i>Tecela.html</i>, tudo estará lá. A linha discreta no alto da tela mostra quando isso aconteceu (“✓ Salvo neste aparelho às 10:32”).</li>
 <li><b>Mas essa cópia do navegador pode se perder</b> se os dados de navegação forem limpos (“limpar histórico”, “limpar dados dos sites”), se você usar janela anônima, trocar de navegador ou de computador, se o aparelho ficar sem espaço ou, no iPhone e no iPad, se a Tecelã ficar vários dias sem ser aberta (o Safari apaga os dados de sites pouco usados).</li>
 <li><b>No arquivo .tecela, quando você salva:</b> é a cópia que vale. Ele guarda tudo (turmas, crianças, anotações, observações, atas, boletins, perfis, conselhos, planos, calendário, tarefas, repertório e biblioteca), pode ficar num pendrive ou numa pasta na nuvem, abre em outro aparelho e é o que permite recuperar tudo. Com a senha ligada, vai criptografado.</li></ul>
-<ul><li><b>💾 Salvar</b> (no alto da tela, no Painel ou em Ajustes → Arquivo; ou <b>Ctrl+S</b>) grava no seu arquivo. O nome do arquivo leva a <b>data e a hora</b>, como <i>Tecela_Escola_2026-11-06_14h32.tecela</i>. Nos navegadores que permitem (Chrome e Edge no computador), a gravação vai direto ao mesmo arquivo, e a data e a hora do nome são atualizadas quando o navegador deixa renomear; nos outros, uma cópia nova vai para a pasta de downloads. O botão fica destacado quando há alterações que ainda não estão no arquivo.</li>
+<ul><li><b>💾 Salvar</b> (no alto da tela, no Painel ou em Ajustes → Arquivo; ou <b>Ctrl+S</b>) grava no seu arquivo. O nome do arquivo leva a <b>data e a hora</b>, como <i>Tecela_Escola_2026-11-06_14h32.tecela</i>; a cada Salvar, a data e a hora antigas saem do nome e entram as novas. Nos navegadores que permitem (Chrome e Edge no computador), a gravação vai direto ao mesmo arquivo, e a data e a hora do nome são atualizadas quando o navegador deixa renomear; nos outros, uma cópia nova vai para a pasta de downloads. O botão fica destacado quando há alterações que ainda não estão no arquivo.</li>
 <li><b>Salvar sempre como um arquivo novo:</b> em Ajustes → Arquivo, marque esta opção para que cada “Salvar” crie um arquivo novo, com data e hora, mantendo o histórico de cópias.</li>
 <li><b>Salvar como novo arquivo</b> e <b>Abrir outro arquivo</b> ficam em Ajustes → Arquivo.</li>
 <li><b>Ao sair:</b> o botão “Sair” oferece “Salvar e sair”. “Sair sem salvar no arquivo” mantém as alterações só neste navegador (veja acima). Se você fechar a aba direto, o navegador mostra o aviso “Sair do site?”. Na próxima abertura, se ficaram alterações fora do arquivo, a Tecelã pergunta se quer salvar.</li>
@@ -5784,9 +5819,9 @@ const MANUAL_HTML = `
 <li><b>No celular e no tablet:</b> o sistema não conhece a extensão .tecela (no Android ela aparece como “Arquivo em BIN”). Há uma limitação do Android: quando o <i>Tecela.html</i> é aberto pelo gerenciador de arquivos, o navegador abre a página como “content://” e não entrega à página o arquivo escolhido. Por isso, no Android, abra a Tecelã pelo endereço <b>marciowillians.github.io/tecela/Tecela.html</b>, no Chrome: assim o arquivo .tecela abre normalmente (escolha-o na pasta Downloads). No celular, “Salvar” baixa uma cópia nova do arquivo, em Downloads. Os dados digitados por esse endereço ficam guardados à parte dos do Tecela.html aberto no computador: para levar de um para o outro, use o arquivo .tecela. No iPhone e no iPad, o arquivo precisa estar no app Arquivos. Se escolher outro tipo de arquivo, a Tecelã avisa e nada é alterado.</li></ul>
 <p>Em <b>Ajustes</b> ficam também a senha e o tempo para travar, a <b>cópia de segurança</b> e o intervalo do lembrete, as <b>fontes dos documentos impressos</b>, os períodos das faltas, os <b>períodos da observação e do conselho</b> (anual, semestral, trimestral ou bimestral), a <b>Computação</b> na BNCC (ligada ou não), o <b>ano letivo</b> (mínimo de dias letivos e mínimo de horas, definidos pela legislação), os <b>anos mostrados</b> (o 9º ano fica oculto por padrão: na tradição Waldorf ele já é o início do ensino médio; pela legislação brasileira, faz parte do Ensino Fundamental), o formato das atas, o prazo de guarda dos egressos, o tema (claro ou escuro) e o tamanho da letra.</p>
 
-<h3 id="m-copiaseg">🛟 Cópia de segurança</h3>
+<h3 id="m-copiaseg"><svg class="ico-boia" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="#D9533A" stroke-width="5"/><circle cx="12" cy="12" r="8" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="4.19 8.38" stroke-dashoffset="2.1"/><circle cx="12" cy="12" r="10.5" fill="none" stroke="#8A3B2E" stroke-width=".8"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#8A3B2E" stroke-width=".8"/></svg> Cópia de segurança</h3>
 <p>O arquivo de trabalho costuma ficar no mesmo computador da Tecelã. Se o computador estragar, for roubado ou formatado, os dois se perdem juntos. A <b>cópia de segurança</b> é um arquivo à parte, para guardar <b>fora deste computador</b>:</p>
-<ul><li>Use <b>🛟 Cópia</b>, no alto da tela, ou Ajustes → Cópia de segurança. O arquivo se chama <i>Tecela_COPIA_Escola_data_hora.tecela</i>.</li>
+<ul><li>Use <b><svg class="ico-boia" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="#D9533A" stroke-width="5"/><circle cx="12" cy="12" r="8" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="4.19 8.38" stroke-dashoffset="2.1"/><circle cx="12" cy="12" r="10.5" fill="none" stroke="#8A3B2E" stroke-width=".8"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#8A3B2E" stroke-width=".8"/></svg> Cópia</b>, no alto da tela, ou Ajustes → Cópia de segurança. O arquivo se chama <i>Tecela_COPIA_Escola_data_hora.tecela</i>.</li>
 <li><b>Ela é sempre protegida por senha.</b> Com a senha da Tecelã ligada, usa a mesma senha. Sem ela, na primeira cópia você cria a <b>senha das cópias de segurança</b> e recebe uma chave de recuperação; depois, a Tecelã usa essa senha sozinha. A senha das cópias fica só neste aparelho e nunca vai dentro do arquivo do “Salvar”.</li>
 <li><b>Onde guardar:</b> num pendrive, na pasta do Google Drive ou do OneDrive, ou no seu próprio e-mail, como anexo. No celular, a cópia abre a janela de compartilhar: escolha o Drive, o OneDrive ou o e-mail.</li>
 <li><b>Lembrete:</b> a cada 5 dias sem cópia, aparece um aviso amarelo no Painel e no alto da tela, e o “Sair” também lembra. O intervalo muda em Ajustes → Cópia de segurança (0 desliga, o que não é recomendado).</li>

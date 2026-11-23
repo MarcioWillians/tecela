@@ -1,6 +1,6 @@
 # Tecelã — Fio a fio, tecendo as linhas da vida escolar
 
-Versão 1.11.1 · Autor e idealizador: Márcio Willians Barreto de Andrade · marciowillians@gmail.com
+Versão 1.12 · Autor e idealizador: Márcio Willians Barreto de Andrade · marciowillians@gmail.com
 Software livre: GNU GPL versão 3, com termos adicionais (arquivo `LICENSE`). Toda cópia deve manter visível o aviso “Tecelã — criada por Márcio Willians Barreto de Andrade”, e versões modificadas devem se identificar como diferentes da original e informar que o autor original não tem responsabilidade sobre as alterações. Bibliotecas e fontes: veja no app, em Ajuda → Créditos e licenças.
 
 A Tecelã é um app em um único arquivo HTML, offline, para a professora ou o professor de classe Waldorf registrar anotações, observações do período, atas, vivências, perfis, o conselho de classe, o planejamento e o acompanhamento das crianças e das famílias, e tecer com esses fios o Boletim Descritivo de cada criança.
@@ -41,10 +41,10 @@ O manual completo está dentro do app, em Ajuda.
 
 1. Edite os arquivos em `src/`.
 2. Rode `python3 build.py`.
-3. Rode os testes (precisam do Playwright), por exemplo `LOG=log.txt node testes/teste-v111.js`:
+3. Rode os testes (precisam do Playwright), por exemplo `LOG=log.txt node testes/teste-v112.js`:
    - `teste-demo.js`: percorre o modelo e gera DOCX e PDF;
    - `teste-fluxo.js`: primeiro uso, senha, arquivo, virada do ano;
    - `teste-varredura.js`: todas as telas no computador, no celular e no tablet com tema escuro;
    - `teste-partilha.js`: Partilha pedagógica (inclusive a classificação obrigatória de toda coleção e campo);
-   - `teste-novidades.js` e `teste-v12.js` a `teste-v111.js`: as funções de cada versão (no `teste-v12`, `DOCX=pasta` com boletins **fictícios** testa o importador). O `teste-v111.js` cobre a cópia de segurança com senha e o lembrete, o desfazer nos textos e os digitalizados.
+   - `teste-novidades.js` e `teste-v12.js` a `teste-v112.js`: as funções de cada versão (no `teste-v12`, `DOCX=pasta` com boletins **fictícios** testa o importador). O `teste-v112.js` cobre o painel de conferência que abre o boletim na seção, o botão Copiar das seções, o nome do arquivo e a tela inicial no celular.
 4. Antes de entregar, rode todos e confira que nenhum aponta erro.
